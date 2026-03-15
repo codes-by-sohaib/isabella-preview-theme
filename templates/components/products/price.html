@@ -60,7 +60,7 @@ If you are making a change here or in price-range.html, you probably want to mak
         {{/if}}
     </div>
     <div class="price-section price-section--withoutTax rrp-price--withoutTax{{#if price.with_tax}} price-section--minor{{/if}}" {{#unless price.rrp_without_tax}}style="display: none;"{{/unless}}>
-        <span>
+        <span class="label-msrp-hide">
             {{> components/products/price-label
                 label_value=theme_settings.pdp-retail-price-label
                 fallback=(lang "page_builder.pdp-retail-price-label")

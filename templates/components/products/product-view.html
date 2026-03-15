@@ -44,7 +44,14 @@
                 data-zoom-image="{{getImageSrcset product.main_image (cdn theme_settings.default_image_product) 1x=theme_settings.zoom_size }}"
                 {{/if}}
                 >
+                          {{#or product.price.non_sale_price_with_tax product.price.non_sale_price_without_tax}}
+    <div class="sale-flag-side pdp-sale-badge-c">
+        <span class="sale-text">On Sale!</span>
+    </div>
+{{/or}}
             <div class="productView-img-container">
+  
+
                 {{!-- Remove the surrounding a-element if there is no main image. --}}
                 {{#if product.main_image}}
                     <a href="{{getImageSrcset product.main_image (cdn theme_settings.default_image_product) 1x=theme_settings.zoom_size}}"

@@ -1,3 +1,24 @@
+
+<!--Yotpo code after description product pages-->
+
+<script type="text/javascript">
+(function e(){var e=document.createElement("script");e.type="text/javascript",e.async=true,e.src="//staticw2.yotpo.com/0asU3bY3fWk7B6BRvkBUpqyl1BMGEdK336qcW8XE/widget.js";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)})();
+</script>
+
+<script type="text/javascript">//<![CDATA[
+var div = document.createElement("div");
+div.setAttribute('class', 'yotpo yotpo-main-widget');
+div.setAttribute('data-product-id',"{{product.id}}");
+div.setAttribute('data-name',"{{product.title}}");
+div.setAttribute('data-url', "{{settings.base_url}}{{product.url}}");
+div.setAttribute('data-image-url', "{{getImage product.main_image 'product'}}");
+div.setAttribute('data-price', "{{#if product.price.with_tax}}{{product.price.with_tax.value}}{{/if}}{{#if product.price.without_tax}}{{product.price.without_tax.value}}{{/if}}");
+div.setAttribute('data-currency', "{{currency_selector.active_currency_code}}");
+document.querySelector('.append-yotpo-description-pdp')
+  .insertAdjacentElement('afterend', div);
+//]]></script>
+
+
 <!-- Custom JS for search dropdown header Start -->
 
 <script>

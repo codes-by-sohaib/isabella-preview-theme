@@ -1,0 +1,107 @@
+
+body {
+    overflow-x: hidden;
+}
+
+.productCarousel .card-buttons .card-figcaption-button--compare,
+.productGrid .card-buttons .card-figcaption-button--compare {
+    display: none !important;
+}
+
+// Product Cards CSS
+
+.productGrid {
+.price-section.price-section--withoutTax.price--withoutTax span.price-now-label {
+    display: none;
+}
+.price-section.price-section--withoutTax.non-sale-price--withoutTax {
+    display: none !important;
+}
+
+}
+
+
+// Product page CSSS
+
+.productView-details {
+
+    .productView-description.warranty-description-c {
+    margin-top: 3rem;
+}
+
+     .confidence-pdp-icons {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    justify-content: start;
+    align-items: self-start;
+    max-width: 350px;
+  }
+  
+
+  .confidence-pdp-icons__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex: 1 1 0;
+    text-align: center;
+  }
+
+  .confidence-pdp-icons__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 55px;
+  }
+
+  .confidence-pdp-icons__icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .confidence-pdp-icons__title {
+    font-size: 8px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    line-height: 1.3;
+    margin-top: 4px;
+  }
+
+  .confidence-pdp-icons__desc {
+    font-size: 8px;
+    font-weight: 400;
+    color: #444444;
+    margin: 0;
+    line-height: 1.4;
+    font-style: italic;
+  }
+
+
+
+    .productView-description.warranty-description-c {
+    padding: 0 !important;
+}
+
+
+.price-section.price-section--withoutTax.price--withoutTax span.price-now-label {
+    display: none;
+}
+.price-section.price-section--withoutTax.non-sale-price--withoutTax {
+    display: none;
+}
+.brand-link-c {
+    margin-top: 0 !important;
+}
+.socialLinks-share {
+    display: none;
+}
+@media (min-width: 1261px) {
+    .productView-options .add-to-cart-buttons{
+        padding-left: 0;
+    }
+}
+}

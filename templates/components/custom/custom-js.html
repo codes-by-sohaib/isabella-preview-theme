@@ -1,0 +1,347 @@
+<!-- Custom JS for search dropdown header Start -->
+
+<script>
+(function () {
+  'use strict';
+
+  var wrapper  = document.querySelector('.cs-wrapper');
+  var input    = document.querySelector('.cs-input');
+  var clearBtn = document.querySelector('.cs-clear');
+  var dropdown = document.getElementById('cs-dropdown');
+
+  if (!input || !dropdown || !wrapper) return;
+
+  var TOKEN = wrapper.getAttribute('data-token') || '';
+  if (!TOKEN) { console.warn('CS Search: No storefront token.'); return; }
+
+  /* Stop words — inhe suggestions mein nahi dikhana */
+  var STOP = { 'in': 1, 'with': 1, 'and': 1, 'the': 1, 'a': 1, 'an': 1, 'of': 1, 'for': 1, 'to': 1, 'by': 1, 'from': 1 };
+
+  var GQL_QUERY = [
+    'query SearchProducts($term: String!) {',
+    '  site {',
+    '    search {',
+    '      searchProducts(filters: { searchTerm: $term }) {',
+    '        products {',
+    '          edges {',
+    '            node {',
+    '              name',
+    '              path',
+    '              sku',
+    '              customFields { edges { node { name value } } }',
+    '              defaultImage { url(width: 100) }',
+    '              prices {',
+    '                price { value currencyCode formatted }',
+    '                basePrice { value currencyCode formatted }',
+    '              }',
+    '            }',
+    '          }',
+    '          collectionInfo { totalItems }',
+    '        }',
+    '      }',
+    '    }',
+    '  }',
+    '}'
+  ].join('\n');
+
+  /* State */
+  var timer      = null;
+  var cache      = Object.create(null);
+  var controller = null;
+  var activeIdx  = -1;
+  var items      = [];
+  var lastQuery  = '';
+
+  /* Events */
+  input.addEventListener('input', function () {
+    var q = input.value.trim();
+    clearBtn.hidden = q.length === 0;
+    onType(q);
+  });
+
+  clearBtn.addEventListener('click', function () {
+    input.value = '';
+    clearBtn.hidden = true;
+    input.focus();
+    closeDropdown();
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!wrapper.contains(e.target)) closeDropdown();
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (!dropdown.classList.contains('cs-open')) return;
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); moveActive(1);  break;
+      case 'ArrowUp':   e.preventDefault(); moveActive(-1); break;
+      case 'Escape':    closeDropdown(); input.blur();       break;
+      case 'Enter':
+        if (activeIdx >= 0 && items[activeIdx]) {
+          e.preventDefault();
+          items[activeIdx].click();
+        }
+        break;
+    }
+  });
+
+  /* Type handler */
+  function onType(query) {
+    clearTimeout(timer);
+    if (!query || query.length < 2) { closeDropdown(); lastQuery = ''; return; }
+    if (query === lastQuery) return;
+    showSkeleton();
+    timer = setTimeout(function () {
+      lastQuery = query;
+      if (cache[query]) { render(query, cache[query]); return; }
+      fetchData(query);
+    }, 180);
+  }
+
+  /* GraphQL fetch */
+  function fetchData(query) {
+    if (controller) controller.abort();
+    controller = new AbortController();
+
+    fetch('/graphql', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + TOKEN,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({ query: GQL_QUERY, variables: { term: query } })
+    })
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (json) {
+      if (json.errors) { console.error('GQL errors:', json.errors); renderEmpty(); return; }
+
+      var result   = json.data.site.search.searchProducts.products;
+      /* Filter out products with status: extinct custom field */
+      var products = (result.edges || []).map(function (e) { return e.node; }).filter(function (p) {
+        var fields = p.customFields && p.customFields.edges ? p.customFields.edges : [];
+        return !fields.some(function (f) {
+          return f.node.name.toLowerCase() === 'status' && f.node.value.toLowerCase() === 'extinct';
+        });
+      });
+      var total    = (result.collectionInfo && result.collectionInfo.totalItems) || products.length;
+
+      /* Generate keyword suggestions from product names */
+      var suggestions = buildSuggestions(products, query);
+
+      cache[query] = { products: products, total: total, suggestions: suggestions };
+      render(query, cache[query]);
+    })
+    .catch(function (err) {
+      if (err.name !== 'AbortError') { console.error('CS Search error:', err); renderEmpty(); }
+    });
+  }
+
+  /* Build keyword suggestions from product names */
+  function buildSuggestions(products, query) {
+    var q       = query.toLowerCase();
+    var seen    = Object.create(null);
+    var results = [];
+
+    products.forEach(function (p) {
+      /* Full product name as suggestion if it matches */
+      var nameLower = p.name.toLowerCase();
+      if (nameLower.indexOf(q) > -1 && !seen[nameLower]) {
+        seen[nameLower] = 1;
+        results.push(p.name);
+      }
+
+      /* Individual meaningful words from product name */
+      var words = p.name.split(/[\s\(\)\-\/,]+/);
+      words.forEach(function (word) {
+        var wl = word.toLowerCase();
+        if (wl.length < 3 || STOP[wl] || !wl.startsWith(q)) return;
+        /* Capitalize first letter */
+        var display = word.charAt(0).toUpperCase() + word.slice(1);
+        if (!seen[wl]) {
+          seen[wl] = 1;
+          results.push(display);
+        }
+      });
+    });
+
+    /* Sort: shorter matches first (more relevant) */
+    results.sort(function (a, b) { return a.length - b.length; });
+
+    return results.slice(0, 4);
+  }
+
+  /* Helpers */
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function highlight(text, query) {
+    var idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx < 0) return esc(text);
+    return esc(text.slice(0, idx)) +
+      '<em class="cs-em">' + esc(text.slice(idx, idx + query.length)) + '</em>' +
+      esc(text.slice(idx + query.length));
+  }
+
+  function getPrice(prices) {
+    if (!prices || !prices.price) return '';
+    return prices.price.formatted || '';
+  }
+
+  function getOldPrice(prices) {
+    if (!prices || !prices.basePrice || !prices.price) return '';
+    if (parseFloat(prices.basePrice.value) <= parseFloat(prices.price.value)) return '';
+    return prices.basePrice.formatted || '';
+  }
+
+  /* Render */
+  function render(query, data) {
+    activeIdx = -1;
+    var products    = data.products    || [];
+    var total       = data.total       || products.length;
+    var suggestions = data.suggestions || [];
+
+    if (!products.length && !suggestions.length) { renderEmpty(); return; }
+
+    var html = '';
+
+    /* Suggestions section */
+    if (suggestions.length) {
+      html += '<div class="cs-label">Suggestions</div>';
+      html += '<ul class="cs-sugg" role="group">';
+      suggestions.forEach(function (s) {
+        html +=
+          '<li class="cs-sugg-item" role="option" tabindex="-1" data-href="/search.php?search_query=' + encodeURIComponent(s) + '">' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+              '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>' +
+            '</svg>' +
+            highlight(s, query) +
+          '</li>';
+      });
+      html += '</ul>';
+    }
+
+    /* Products section */
+    if (products.length) {
+      html += '<a class="cs-label cs-label-link" href="/search.php?search_query=' + encodeURIComponent(query) + '">' + total.toLocaleString() + ' results for &ldquo;' + esc(query) + '&rdquo;</a>';
+      html += '<div class="cs-products" role="group">';
+
+      products.slice(0, 4).forEach(function (p) {
+        var img      = p.defaultImage ? p.defaultImage.url : '';
+        var price    = getPrice(p.prices);
+        var oldPrice = getOldPrice(p.prices);
+
+        html +=
+          '<a class="cs-card" href="' + esc(p.path || '#') + '" role="option" tabindex="-1">' +
+            '<div class="cs-thumb">' +
+              (img
+                ? '<img src="' + esc(img) + '" alt="' + esc(p.name) + '" loading="lazy">'
+                : '<div class="cs-thumb-ph"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg></div>'
+              ) +
+            '</div>' +
+            '<div class="cs-info">' +
+              '<div class="cs-name">' + esc(p.name) + '</div>' +
+              (p.sku ? '<div class="cs-sku">' + esc(p.sku) + '</div>' : '') +
+              '<div>' +
+                (price ? '<span class="cs-price">' + esc(price) + '</span>' : '') +
+                (oldPrice ? '<span class="cs-price-old">' + esc(oldPrice) + '</span>' : '') +
+              '</div>' +
+            '</div>' +
+            '<svg class="cs-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+              '<path d="M5 12h14M12 5l7 7-7 7"/>' +
+            '</svg>' +
+          '</a>';
+      });
+
+      html += '</div>';
+    }
+
+    /* Footer */
+    html +=
+      '<div class="cs-footer">' +
+        '<a class="cs-browse" href="/search.php?search_query=' + encodeURIComponent(query) + '">' +
+          'View All Results ' +
+          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>' +
+        '</a>' +
+      '</div>';
+
+    dropdown.innerHTML = html;
+    openDropdown();
+    bindItems();
+  }
+
+  /* Skeleton */
+  function showSkeleton() {
+    var html = '<div class="cs-label">Searching...</div><div class="cs-products">';
+    for (var i = 0; i < 3; i++) {
+      html +=
+        '<div class="cs-skel-card">' +
+          '<div class="cs-skel cs-skel-thumb"></div>' +
+          '<div class="cs-skel-body">' +
+            '<div class="cs-skel cs-skel-l1"></div>' +
+            '<div class="cs-skel cs-skel-l2"></div>' +
+            '<div class="cs-skel cs-skel-l3"></div>' +
+          '</div>' +
+        '</div>';
+    }
+    dropdown.innerHTML = html + '</div>';
+    openDropdown();
+    items = [];
+  }
+
+  /* Empty */
+  function renderEmpty() {
+    dropdown.innerHTML = '<div class="cs-empty">No products found</div>';
+    openDropdown();
+    items = [];
+  }
+
+  /* Bind items */
+  function bindItems() {
+    items = Array.from(dropdown.querySelectorAll('.cs-sugg-item, .cs-card'));
+    items.forEach(function (el, i) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        var href = el.href || el.getAttribute('data-href');
+        if (href) window.location.href = href;
+      });
+      el.addEventListener('mouseenter', function () {
+        activeIdx = i;
+        items.forEach(function (e, j) { e.classList.toggle('cs-active', j === i); });
+      });
+    });
+  }
+
+  /* Keyboard move */
+  function moveActive(dir) {
+    if (!items.length) return;
+    activeIdx = Math.max(-1, Math.min(items.length - 1, activeIdx + dir));
+    items.forEach(function (el, i) { el.classList.toggle('cs-active', i === activeIdx); });
+    if (activeIdx >= 0) items[activeIdx].scrollIntoView({ block: 'nearest' });
+  }
+
+  function openDropdown() {
+    dropdown.classList.add('cs-open');
+    input.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeDropdown() {
+    dropdown.classList.remove('cs-open');
+    input.setAttribute('aria-expanded', 'false');
+    activeIdx = -1;
+    items     = [];
+    lastQuery = '';
+  }
+
+})();
+</script>
+
+
+
+<!-- Custom JS for search dropdown header End -->

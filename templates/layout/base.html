@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html class="no-js" lang="{{ locale_name }}">
+    <head>
+        <title>{{ head.title }}</title>
+        {{{ resourceHints }}}
+        {{{ head.meta_tags }}}
+        {{{ head.config }}}
+        {{#block "head"}} {{/block}}
+
+        <link href="{{{ head.favicon }}}" rel="shortcut icon">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <script nonce="{{nonce}}">
+            {{!-- Change document class from no-js to js so we can detect this in css --}}
+            document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
+        </script>
+
+        {{> components/common/polyfill-script }}
+        <script nonce="{{nonce}}">window.consentManagerTranslations = `{{{langJson 'consent_manager'}}}`;</script>
+
+        {{!-- Load Lazysizes script ASAP so images will appear --}}
+        <script nonce="{{nonce}}">
+            {{!-- Only load visible elements until the onload event fires, after which preload nearby elements. --}}
+            window.lazySizesConfig = window.lazySizesConfig || {};
+            window.lazySizesConfig.loadMode = 1;
+        </script>
+        <script nonce="{{nonce}}" async src="{{cdn 'assets/dist/theme-bundle.head_async.js' resourceHint='preload' as='script'}}"></script>
+        
+        {{getFontsCollection font-display='swap'}}
+        
+        <script nonce="{{nonce}}" async src="{{cdn 'assets/dist/theme-bundle.font.js' resourceHint='preload' as='script'}}"></script>
+
+        {{{stylesheet '/assets/css/theme.css'}}}
+
+        {{{head.scripts}}}
+
+        {{~inject 'themeSettings' theme_settings}}
+        {{~inject 'storefrontAPIToken' settings.storefront_api.token}}
+        {{~inject 'zoomSize' theme_settings.zoom_size}}
+        {{~inject 'productSize' theme_settings.product_size}}
+        {{~inject 'genericError' (lang 'common.generic_error')}}
+        {{~inject 'urls' urls}}
+        {{~inject 'secureBaseUrl' settings.secure_base_url}}
+        {{~inject 'cartId' cart_id}}
+        {{~inject 'template' template}}
+        {{~inject 'validationDictionaryJSON' (langJson 'validation_messages')}}
+        {{~inject 'validationFallbackDictionaryJSON' (langJson 'validation_fallback_messages')}}
+        {{~inject 'validationDefaultDictionaryJSON' (langJson 'validation_default_messages')}}
+        {{~inject 'carouselArrowAndDotAriaLabel' (lang 'carousel.arrow_and_dot_aria_label')}}
+        {{~inject 'carouselActiveDotAriaLabel' (lang 'carousel.active_dot_aria_label')}}
+        {{~inject 'carouselContentAnnounceMessage' (lang 'carousel.content_announce_message')}}
+        {{~inject 'giftWrappingRemoveMessage' (lang 'cart.gift_wrapping.remove_confirm')}}
+    </head>
+    <body class="page-type_{{page_type}}{{#if theme_settings.epic-toggle-search}} has--epic-search{{/if}}{{#if theme_settings.epic-toggle-sticky-header}} has--header-sticky{{/if}}{{#if theme_settings.epic-sitewide-message}} has--epic-sitewide{{/if}}">
+        <svg data-src="{{cdn 'img/icon-sprite.svg'}}" class="icons-svg-sprite"></svg>
+
+        {{> components/common/header }}
+        {{> components/common/body }}
+        {{> components/common/footer }}
+
+        <script nonce="{{nonce}}">window.__webpack_public_path__ = "{{cdn 'assets/dist/'}}";</script>
+        <script nonce="{{nonce}}">
+            {{!-- Exported in app.js --}}
+            function onThemeBundleMain() {
+                window.stencilBootstrap("{{page_type}}", {{jsContext}}).load();
+
+                function browserSupportsFormData() {
+                    return typeof FormData !== 'undefined'
+                        && !!FormData.prototype.keys;
+                }
+                function loadFormDataPolyfillScript(src) {
+                    var formDataPolyfillScript = document.createElement('script');
+                    formDataPolyfillScript.src = src;
+                    formDataPolyfillScript.onerror = function () {
+                        console.error('Failed to load formData polyfill script ' + src);
+                    };
+                    document.body.appendChild(formDataPolyfillScript);
+                }
+
+                if (!browserSupportsFormData()) {
+                    loadFormDataPolyfillScript('{{cdn 'assets/dist/theme-bundle.polyfill_form_data.js'}}');
+                }
+            }
+        </script>
+        <script id="theme-bundle-main" nonce="{{nonce}}" async defer src="{{cdn 'assets/dist/theme-bundle.main.js' resourceHint='preload' as='script'}}"></script>
+        <script nonce="{{nonce}}">
+            const scriptElement = document.getElementById('theme-bundle-main');
+
+            if (scriptElement) {
+                addEventListener('load', onThemeBundleMain);
+            } else {
+                console.error('Could not find script element with id "theme-bundle-main"');
+            }
+        </script>
+
+     
+        <style>
+#facetedSearch .facetedSearch-inlineMore {
+    margin-top: 0.5rem;
+}
+
+#facetedSearch .facetedSearch-inlineSearch {
+    margin-bottom: 0.5rem;
+}
+
+#facetedSearch .facetedSearch-inlineList {
+    max-height: 24rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.25rem;
+    -webkit-overflow-scrolling: touch;
+}
+</style>
+
+<script>
+(function () {
+    var SEARCH_THRESHOLD = 10;
+    var refreshTimer = null;
+
+    function getNavItems(navList) {
+        return Array.prototype.filter.call(navList.children, function (child) {
+            return child.classList && child.classList.contains('navList-item');
+        });
+    }
+
+    function getFacetTitle(navList) {
+        var block = navList.closest('.accordion-block');
+        var titleEl = block ? block.querySelector('.accordion-title') : null;
+        var text = titleEl ? titleEl.textContent : '';
+        text = (text || '').replace(/\s+/g, ' ').trim();
+        return text || navList.getAttribute('data-facet') || 'Filter';
+    }
+
+    function removeNode(node) {
+        if (node && node.parentNode) {
+            node.parentNode.removeChild(node);
+        }
+    }
+
+    function insertDefaultSearch(navList) {
+        var content = navList.closest('.accordion-content');
+        var input;
+        var field;
+        var title;
+        var needsSearch;
+
+        if (!content) return;
+        if (navList.closest('.facetedSearch-inlineMore')) return;
+        if (content.querySelector('.facetedSearch-inlineSearch')) return;
+
+        needsSearch =
+            navList.getAttribute('data-has-more-results') === 'true' ||
+            getNavItems(navList).length >= SEARCH_THRESHOLD;
+
+        if (!needsSearch) return;
+
+        title = getFacetTitle(navList);
+
+        field = document.createElement('div');
+        field.className = 'form-field facetedSearch-inlineSearch';
+
+        input = document.createElement('input');
+        input.className = 'form-input';
+        input.type = 'search';
+        input.placeholder = 'Enter ' + title + '...';
+        input.setAttribute('aria-label', 'Search ' + title);
+        input.setAttribute('data-inline-search-target', navList.id);
+
+        field.appendChild(input);
+        content.insertBefore(field, navList);
+    }
+
+    function applyDefaultSearches(root) {
+        var scope = root || document;
+        var lists = scope.querySelectorAll('#facetedSearch .accordion-content .navList');
+
+        Array.prototype.forEach.call(lists, function (navList) {
+            insertDefaultSearch(navList);
+        });
+    }
+
+    function buildTemplateList() {
+        var body = document.body;
+
+        if (body.classList.contains('page-type-category')) {
+            return ['category/show-more', 'brand/show-more', 'search/show-more'];
+        }
+
+        if (body.classList.contains('page-type-brand')) {
+            return ['brand/show-more', 'category/show-more', 'search/show-more'];
+        }
+
+        if (body.classList.contains('page-type-search')) {
+            return ['search/show-more', 'category/show-more', 'brand/show-more'];
+        }
+
+        return ['category/show-more', 'brand/show-more', 'search/show-more'];
+    }
+
+    function fetchShowMoreHtml(template, facetName) {
+        var url = window.location.pathname + window.location.search;
+        var headers = {
+            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'stencil-config': '{}',
+            'stencil-options': JSON.stringify({ render_with: template }),
+            'x-requested-with': 'stencil-utils',
+            'x-xsrf-token': window.BCData && window.BCData.csrf_token ? window.BCData.csrf_token : ''
+        };
+
+        url += (url.indexOf('?') === -1 ? '?' : '&') + 'list_all=' + encodeURIComponent(facetName);
+
+        return fetch(url, {
+            method: 'GET',
+            headers: headers,
+            credentials: 'include'
+        })
+        .then(function (response) {
+            var type = response.headers.get('content-type') || '';
+            if (type.indexOf('application/json') !== -1) {
+                return response.json();
+            }
+            return response.text();
+        })
+        .then(function (payload) {
+            if (typeof payload === 'string') {
+                return payload;
+            }
+            return payload[template] || payload['components/' + template] || '';
+        });
+    }
+
+    function findInlineMore(html) {
+        var holder;
+
+        if (!html) return null;
+
+        holder = document.createElement('div');
+        holder.innerHTML = html;
+
+        return holder.querySelector('.facetedSearch-inlineMore');
+    }
+
+    function replaceWithInlineMore(toggle, navList, inlineMore) {
+        var accordionContent = navList.closest('.accordion-content');
+        var existingSearch = accordionContent ? accordionContent.querySelector('.facetedSearch-inlineSearch') : null;
+        var newList = inlineMore.querySelector('.navList');
+        var newInput;
+
+        if (newList) {
+            newList.id = navList.id;
+            newList.setAttribute('data-facet', navList.getAttribute('data-facet') || '');
+            newList.setAttribute('data-has-more-results', 'false');
+            newList.classList.add('facetedSearch-inlineList');
+        }
+
+        if (existingSearch && !existingSearch.closest('.facetedSearch-inlineMore')) {
+            removeNode(existingSearch);
+        }
+
+        navList.parentNode.replaceChild(inlineMore, navList);
+        removeNode(toggle);
+
+        newInput = inlineMore.querySelector('.form-input');
+        if (newInput) {
+            newInput.focus();
+        }
+
+        return newInput;
+    }
+
+    function loadInlineFacet(toggle, navList, callback) {
+        var facetName = navList.getAttribute('data-facet');
+        var templates = buildTemplateList();
+        var attempt = 0;
+
+        if (!facetName) return;
+        if (navList.getAttribute('data-inline-loading') === 'true') return;
+
+        navList.setAttribute('data-inline-loading', 'true');
+
+        function tryNextTemplate() {
+            if (attempt >= templates.length) {
+                navList.setAttribute('data-inline-loading', 'false');
+                return;
+            }
+
+            var template = templates[attempt];
+            attempt += 1;
+
+            fetchShowMoreHtml(template, facetName)
+                .then(function (html) {
+                    var inlineMore = findInlineMore(html);
+
+                    if (!inlineMore) {
+                        tryNextTemplate();
+                        return;
+                    }
+
+                    var newInput = replaceWithInlineMore(toggle, navList, inlineMore);
+
+                    if (typeof callback === 'function') {
+                        callback(newInput);
+                    }
+                })
+                .catch(function () {
+                    tryNextTemplate();
+                });
+        }
+
+        tryNextTemplate();
+    }
+
+    function getNavListForInput(input) {
+        var targetId = input.getAttribute('data-inline-search-target');
+        var inlineMore = input.closest('.facetedSearch-inlineMore');
+        var content;
+
+        if (targetId) {
+            return document.getElementById(targetId);
+        }
+
+        if (inlineMore) {
+            return inlineMore.querySelector('.navList');
+        }
+
+        content = input.closest('.accordion-content');
+        return content ? content.querySelector('.navList') : null;
+    }
+
+    function filterNavList(navList, query) {
+        var items;
+
+        if (!navList) return;
+
+        items = navList.querySelectorAll('.navList-item');
+
+        Array.prototype.forEach.call(items, function (item) {
+            var text = (item.textContent || '').toLowerCase();
+            item.style.display = text.indexOf(query) !== -1 ? '' : 'none';
+        });
+    }
+
+    function expandFromSearchInput(input, callback) {
+        var navList = getNavListForInput(input);
+        var toggle;
+
+        if (!navList) return false;
+        if (navList.getAttribute('data-has-more-results') !== 'true') return false;
+
+        toggle = document.querySelector('#facetedSearch .accordion-content .toggleLink[href="#' + navList.id + '"]');
+
+        loadInlineFacet(toggle, navList, callback);
+        return true;
+    }
+
+    function scheduleSetup(root) {
+        window.clearTimeout(refreshTimer);
+        refreshTimer = window.setTimeout(function () {
+            applyDefaultSearches(root);
+        }, 25);
+    }
+
+    document.addEventListener('click', function (event) {
+        var toggle = event.target.closest('#facetedSearch .accordion-content .toggleLink[href^="#facetedSearch-navList--"]');
+        var href;
+        var navList;
+
+        if (!toggle) return;
+
+        href = toggle.getAttribute('href');
+        if (!href) return;
+
+        navList = document.querySelector(href);
+        if (!navList) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.stopImmediatePropagation) {
+            event.stopImmediatePropagation();
+        }
+
+        loadInlineFacet(toggle, navList);
+    }, true);
+
+    document.addEventListener('focusin', function (event) {
+        var input = event.target.closest('#facetedSearch .facetedSearch-inlineSearch .form-input');
+        if (!input) return;
+
+        expandFromSearchInput(input);
+    });
+
+    document.addEventListener('input', function (event) {
+        var input = event.target.closest('#facetedSearch .facetedSearch-inlineSearch .form-input');
+        var query;
+        var navList;
+
+        if (!input) return;
+
+        query = (input.value || '').toLowerCase();
+
+        if (expandFromSearchInput(input, function (newInput) {
+            if (!newInput) return;
+            newInput.value = input.value;
+            filterNavList(getNavListForInput(newInput), query);
+        })) {
+            return;
+        }
+
+        navList = getNavListForInput(input);
+        filterNavList(navList, query);
+    });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            scheduleSetup(document);
+        });
+    } else {
+        scheduleSetup(document);
+    }
+
+    var observerTarget =
+        document.querySelector('#faceted-search-container') ||
+        document.querySelector('#facetedSearch');
+
+    if (observerTarget && 'MutationObserver' in window) {
+        new MutationObserver(function () {
+            scheduleSetup(observerTarget);
+        }).observe(observerTarget, {
+            childList: true,
+            subtree: true
+        });
+    }
+})();
+</script>
+
+ {{> components/custom/custom-js }}
+ {{{footer.scripts}}}
+
+
+    </body>
+</html>

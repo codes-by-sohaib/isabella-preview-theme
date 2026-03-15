@@ -1,0 +1,39 @@
+<div class="facetedSearch-inlineMore">
+    <div class="form-field facetedSearch-inlineSearch">
+        <input
+            class="form-input"
+            type="search"
+            placeholder="{{#if facet_title}}Enter {{facet_title}}...{{else}}Enter {{all_facets}}...{{/if}}"
+            aria-label="{{#if facet_title}}Search {{facet_title}}{{else}}Search {{all_facets}}{{/if}}">
+    </div>
+
+    <ul class="navList facetedSearch-inlineList">
+        {{#each facets}}
+            {{#if facet '===' ../all_facets}}
+                {{#each items}}
+                    <li class="navList-item">
+                        <a
+                            href="{{url}}"
+                            class="navList-action navList-action--checkbox{{#if selected}} is-selected{{/if}}"
+                            rel="nofollow"
+                            data-faceted-search-facet>
+                            {{{sanitize title}}}
+
+                            {{#if ../show_product_counts}}
+                                {{#if count}}
+                                    <span>({{count}})</span>
+                                {{/if}}
+                            {{/if}}
+
+                            <span class="navList-action-close" aria-hidden="true">
+                                <svg class="icon">
+                                    <use href="#icon-close"/>
+                                </svg>
+                            </span>
+                        </a>
+                    </li>
+                {{/each}}
+            {{/if}}
+        {{/each}}
+    </ul>
+</div>

@@ -1,35 +1,32 @@
-<div class="facetedSearch-inlineMore">
-    <div class="form-field facetedSearch-inlineSearch">
-        <input
-            class="form-input"
-            type="search"
-            placeholder="{{#if facet_title}}Enter {{facet_title}}...{{else}}Enter {{all_facets}}...{{/if}}"
-            aria-label="{{#if facet_title}}Search {{facet_title}}{{else}}Search {{all_facets}}{{/if}}">
+<div class="modal-body">
+    <h1 class="facet-quick-heading">
+        {{#if facet_title}}
+            {{facet_title}}
+        {{else}}
+            {{all_facets}}
+        {{/if}}
+    </h1>
+    <div class="form-field" id="facetedSearch-filterItems">
+        <input class="form-input" type="search" placeholder="{{lang 'forms.search.search'}}">
     </div>
-
-    <ul class="navList facetedSearch-inlineList">
+    <ul class="navList facetedSearch-optionColumns">
         {{#each facets}}
             {{#if facet '===' ../all_facets}}
                 {{#each items}}
                     <li class="navList-item">
                         <a
-                            href="{{url}}"
-                            class="navList-action navList-action--checkbox{{#if selected}} is-selected{{/if}}"
-                            rel="nofollow"
-                            data-faceted-search-facet>
-                            {{{sanitize title}}}
-
+                        href="{{url}}"
+                        class="navList-action{{#if selected}} is-active{{/if}}"
+                        rel="nofollow"
+                        data-id="{{id}}"
+                        data-faceted-search-facet
+                        >
+                            {{{title}}}
                             {{#if ../show_product_counts}}
                                 {{#if count}}
                                     <span>({{count}})</span>
                                 {{/if}}
                             {{/if}}
-
-                            <span class="navList-action-close" aria-hidden="true">
-                                <svg class="icon">
-                                    <use href="#icon-close"/>
-                                </svg>
-                            </span>
                         </a>
                     </li>
                 {{/each}}

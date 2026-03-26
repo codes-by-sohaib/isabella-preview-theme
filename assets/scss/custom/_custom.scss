@@ -1,7 +1,26 @@
 body {
   overflow-x: hidden;
 }
-
+.has--epic-search .navPages-container.is-open {
+    padding-top: 0;
+}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.page-type_page_contact_form .page-sidebar {
+    display: none !important;
+}
+.page-type_page_contact_form .page-content {
+    width: 100% !important;
+}
 .productCarousel .card-buttons .card-figcaption-button--compare,
 .productGrid .card-buttons .card-figcaption-button--compare {
   display: none !important;
@@ -230,4 +249,10 @@ header {
       padding-left: 0;
     }
   }
+}
+
+@media (min-width: 801px) {
+    .navPages .navPage-subMenu-list {
+    padding: 0 16px;
+}
 }

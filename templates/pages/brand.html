@@ -197,6 +197,7 @@ var activeHeightMin=null,activeHeightMax=null;
 var activeDepthMin=null,activeDepthMax=null;
 
 var initialFacetValues={};
+var categoryNameMap={};
 
 var facetsEl=document.getElementById('cf-facets');
 var chipsEl=document.getElementById('cf-chips');
@@ -208,7 +209,12 @@ var sortSel=document.getElementById('cf-sort-sel');
 
 function buildFilterStr(){
     var parts=['brand:=[`'+BRAND_NAME+'`]'];
+    if(activeFilters['__categories__']){
+        var catVals=Object.keys(activeFilters['__categories__']);
+        if(catVals.length)parts.push('categories:=['+catVals.join(',')+']');
+    }
     Object.keys(activeFilters).forEach(function(field){
+        if(field==='__categories__')return;
         var vals=Object.keys(activeFilters[field]);
         if(!vals.length)return;
         if(field==='is_on_sale'){parts.push('is_on_sale:=true');return;}
@@ -238,7 +244,7 @@ function fetchProducts(){
     if(currentAbortController)currentAbortController.abort();
     currentAbortController=new AbortController();
     gridEl.innerHTML='<div class="cf-grid-loading">Loading…</div>';
-    var facetBy=FACET_FIELDS.map(function(f){return f.field;}).join(',');
+    var facetBy=FACET_FIELDS.map(function(f){return f.field;}).join(',')+',categories';
     var params={q:'*',query_by:'name',filter_by:buildFilterStr(),facet_by:facetBy,max_facet_values:500,per_page:PAGE_SIZE,page:currentPage+1,sort_by:sortOrder};
     var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
     fetch(TS_HOST+'/collections/products/documents/search?'+qs,{
@@ -267,6 +273,58 @@ function buildHierarchyFromValues(values){
     return{tree:tree,parentCounts:parentCounts};
 }
 function hasHierarchy(values){return Object.keys(values).some(function(v){return v.indexOf('>')!==-1;});}
+
+function renderCategorySection(catCounts){
+    if(!catCounts||!catCounts.length)return;
+    var toFetch=catCounts.map(function(c){return String(c.value);}).filter(function(id){return !categoryNameMap[id];});
+    function doRender(){
+        var s=makeSection('Category');
+        var ul=document.createElement('ul');ul.className='cf-list';
+        var allItems=[];
+        catCounts.forEach(function(c){
+            if(!c.count)return;
+            var id=String(c.value);
+            var name=categoryNameMap[id]||('Cat '+id);
+            var checked=activeFilters['__categories__']&&activeFilters['__categories__'][id];
+            var li=document.createElement('li');li.className='cf-list__item';
+            li.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(id)+'"'+(checked?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(name)+'</span><span class="cf-option__count">'+c.count+'</span></label>';
+            li.querySelector('input').addEventListener('change',function(e){
+                if(!activeFilters['__categories__'])activeFilters['__categories__']={};
+                if(e.target.checked)activeFilters['__categories__'][id]=true;
+                else delete activeFilters['__categories__'][id];
+                if(!Object.keys(activeFilters['__categories__']).length)delete activeFilters['__categories__'];
+                currentPage=0;renderChips();fetchProducts();
+            });
+            ul.appendChild(li);
+            allItems.push(li);
+        });
+        if(!ul.children.length)return;
+        var SHOW=8,exp=false;
+        if(allItems.length>SHOW){
+            allItems.forEach(function(li,i){if(i>=SHOW)li.style.display='none';});
+            var btn=document.createElement('button');btn.className='cf-show-more';
+            btn.textContent='+ Show '+(allItems.length-SHOW)+' More';
+            btn.addEventListener('click',function(){
+                exp=!exp;
+                allItems.forEach(function(li,i){if(i>=SHOW)li.style.display=exp?'':'none';});
+                btn.textContent=exp?'- Show Less':'+ Show '+(allItems.length-SHOW)+' More';
+            });
+            ul.appendChild(btn);
+        }
+        s.body.appendChild(ul);
+        facetsEl.insertBefore(s.sec,facetsEl.firstChild);
+    }
+    if(toFetch.length){
+        fetch(TS_HOST+'/collections/category_tree/documents/search?q=*&query_by=name&filter_by=cat_id:=['+toFetch.join(',')+']&per_page=250',{
+            headers:{'X-TYPESENSE-API-KEY':TS_KEY}
+        }).then(function(r){return r.json();}).then(function(d){
+            (d.hits||[]).forEach(function(h){categoryNameMap[String(h.document.cat_id)]=h.document.name||'';});
+            doRender();
+        }).catch(function(){doRender();});
+    } else {
+        doRender();
+    }
+}
 
 function renderFacetField(fieldName,facetMap){
     var f=FACET_FIELDS.find(function(x){return x.field===fieldName;});
@@ -339,6 +397,9 @@ function renderSidebarFromFacets(facetCounts){
         var t=sec.querySelector('.cf-section__title');
         if(t&&collapsed[t.textContent])sec.classList.add('is-collapsed');
     });
+
+    // Category section — inserted at top after render
+    renderCategorySection(facetMap['categories']||[]);
 }
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -528,7 +589,13 @@ function renderGrid(products){
 
 function renderChips(){
     var chips=[];
+    if(activeFilters['__categories__']){
+        Object.keys(activeFilters['__categories__']).forEach(function(id){
+            chips.push({field:'__categories__',value:id,label:categoryNameMap[id]||('Cat '+id),isCat:true});
+        });
+    }
     Object.keys(activeFilters).forEach(function(field){
+        if(field==='__categories__')return;
         Object.keys(activeFilters[field]).forEach(function(v){
             var label=field==='is_on_sale'?'On Sale':v.indexOf('>')!==-1?v.split('>').pop():v;
             chips.push({field:field,value:v,label:label});
@@ -547,7 +614,10 @@ function renderChips(){
     chipsRow.querySelectorAll('.cf-chip[data-field]').forEach(function(btn){
         btn.addEventListener('click',function(){
             var fd=btn.dataset.field,vl=btn.dataset.value,isPrice=btn.dataset.price==='true',isDim=btn.dataset.isdim==='true',dim=btn.dataset.dim;
-            if(isPrice){activePriceMin=null;activePriceMax=null;}
+            if(fd==='__categories__'){
+                if(activeFilters['__categories__'])delete activeFilters['__categories__'][vl];
+                if(activeFilters['__categories__']&&!Object.keys(activeFilters['__categories__']).length)delete activeFilters['__categories__'];
+            } else if(isPrice){activePriceMin=null;activePriceMax=null;}
             else if(isDim){
                 if(dim==='width'){activeWidthMin=null;activeWidthMax=null;}
                 else if(dim==='height'){activeHeightMin=null;activeHeightMax=null;}

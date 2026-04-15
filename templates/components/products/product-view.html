@@ -38,12 +38,18 @@
         {{#if product.images.length '>' 1 }}
         {{> components/carousel-content-announcement}}
         {{/if}}
-        <figure class="productView-image"
+        <figure class="productView-image {{#if product.brand.name '==' 'Hubbardton Forge'}}hubberforge-class-figure {{/if}}"
                 data-image-gallery-main
                 {{#if product.main_image}}
                 data-zoom-image="{{getImageSrcset product.main_image (cdn theme_settings.default_image_product) 1x=theme_settings.zoom_size }}"
                 {{/if}}
                 >
+                    {{#if product.brand.name '==' 'Hubbardton Forge'}}
+                   
+        <div class="productView-image-disclaimer" style="...">
+            Image shown may not correspond to selected options.
+        </div>
+        {{/if}}
                           {{#or product.price.non_sale_price_with_tax product.price.non_sale_price_without_tax}}
     <div class="sale-flag-side pdp-sale-badge-c">
         <span class="sale-text">On Sale!</span>
@@ -108,6 +114,7 @@
                 </li>
             {{/each}}
         </ul>
+  
     </section>
 
     <section class="productView-details product-data">
@@ -141,7 +148,29 @@
                 
             <h1 class="productView-title">{{product.title}}</h1>
                         {{#if product.brand}}
-                <h2 class="brand-link-c"><a class="productView-brand" href="{{product.brand.url}}">{{product.brand.name}}</a></h2>
+                <h2 class="brand-link-c">
+                    <a class="productView-brand" href="{{product.brand.url}}">{{product.brand.name}}</a>
+                    {{#filter product.custom_fields 'Collections' property='name'}}
+                        <a class="productView-collection" data-brand="{{../product.brand.name}}" data-collection="{{value}}" href="/shop/?brand={{../product.brand.name}}&cf_collections={{value}}#cf-app" style="display:none;margin-left:10px;font-size:14px;font-weight:500;text-decoration:underline;">Explore the {{value}} Collection</a>
+                    {{/filter}}
+                </h2>
+                <script>
+                (function(){
+                    var link=document.querySelector('.productView-collection');
+                    if(!link)return;
+                    var TS_HOST='https://5xs82etrlcfh6d3qp-1.a2.typesense.net';
+                    var TS_KEY='aMx4L1XJT53psHZqWN8qKWQIAw0REUf1';
+                    var brand=link.getAttribute('data-brand');
+                    var coll=link.getAttribute('data-collection');
+                    if(!brand||!coll)return;
+                    var filter='brand:=[`'+brand.replace(/`/g,'')+'`] && cf_collections:=[`'+coll.replace(/`/g,'')+'`]';
+                    var p={q:'*',query_by:'name',filter_by:filter,per_page:0};
+                    var qs=Object.keys(p).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(p[k]);}).join('&')+'&x-typesense-api-key='+encodeURIComponent(TS_KEY);
+                    fetch(TS_HOST+'/collections/products/documents/search?'+qs).then(function(r){return r.json();}).then(function(d){
+                        if(d&&typeof d.found==='number'&&d.found>2){link.style.display='';}
+                    }).catch(function(){});
+                })();
+                </script>
             {{/if}}
             </div>
 
@@ -159,9 +188,10 @@
             </div>
             {{{region name="product_below_price"}}}
             {{product.detail_messages}}
+    
             <dl class="productView-info">
                 <dt class="productView-info-name sku-label"{{#unless product.sku}} style="display: none;"{{/unless}}>{{lang 'products.sku'}}</dt>
-                <dd class="productView-info-value" data-product-sku>{{product.sku}}</dd>
+                <dd class="productView-info-value sku-value" data-product-sku>{{product.sku}}</dd>
                 <dt class="productView-info-name upc-label"{{#unless product.upc}} style="display: none;"{{/unless}}>{{lang 'products.upc'}}</dt>
                 <dd class="productView-info-value" data-product-upc>{{product.upc}}</dd>
                 {{#if product.condition}}

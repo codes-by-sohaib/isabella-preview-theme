@@ -13,6 +13,33 @@ category:
 
 <style>
 
+.cf-card__add-cart {
+    margin-left: 0 !important;
+}
+
+.cf-card__overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+    background: transparent;
+    opacity: 0;
+    transition: opacity .2s;
+    pointer-events: none;
+    z-index: 3;
+    top: 0;
+    justify-content: center;
+}
+.cf-card__overlay .button {
+    background: #fff !important;
+    border: 1px solid !important;
+    margin-bottom: 5px !important;
+}
 .sidebarBlock.page-content-subcategories ul {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -93,8 +120,9 @@ category:
 .cf-sort select{font-size:12px;border:1px solid var(--sb-border);border-radius:var(--sb-radius);padding:5px 10px;background:#fff;color:var(--sb-text);cursor:pointer}
 .cf-sort select:focus{outline:none}
 .cf-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
-.cf-card{border:1px solid var(--sb-border);border-radius:4px;overflow:hidden;background:#fff;transition:box-shadow .2s,transform .15s;text-decoration:none;color:inherit;display:block}
+.cf-card{position:relative;border:1px solid var(--sb-border);border-radius:4px;overflow:hidden;background:#fff;transition:box-shadow .2s,transform .15s;text-decoration:none;color:inherit;display:block}
 .cf-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px)}
+.cf-card__link{display:block;text-decoration:none;color:inherit}
 .cf-card__img-wrap{position:relative;aspect-ratio:1;overflow:hidden;background:#f5f5f5}
 .cf-card__img{width:100%;height:100%;object-fit:contain;padding:8px;transition:transform .2s}.cf-card:hover .cf-card__img{transform:scale(1.03)}
 .cf-card__body{padding:10px 12px 12px}
@@ -103,6 +131,14 @@ category:
 .cf-card__prices{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
 .cf-card__price{font-size:14px;font-weight:600;color:var(--sb-text)}.cf-card__msrp{font-size:11px;color:var(--sb-light);text-decoration:line-through}
 .cf-card__img-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:36px}
+
+.cf-card:hover .cf-card__overlay{opacity:1;pointer-events:all}
+.cf-card__overlay-btn{display:inline-block;padding:6px 14px;font-size:12px;font-weight:600;text-align:center;border-radius:3px;cursor:pointer;text-decoration:none;width:80%;max-width:180px;border:1px solid #333;background:#fff;color:#333;transition:background .15s,color .15s}
+.cf-card__overlay-btn:hover{background:#333;color:#fff}
+.cf-card__add-cart{background:#333;color:#fff;border-color:#333}
+.cf-card__add-cart:hover{background:#555;border-color:#555}
+@media(max-width:800px){.cf-card__overlay{opacity:1;pointer-events:all;position:relative;background:transparent;padding:4px 12px 8px}
+.cf-card__overlay-btn{font-size:11px;padding:5px 10px}}
 .cf-empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--sb-muted)}
 .cf-empty p{font-size:15px;margin-bottom:12px}
 .cf-empty button{padding:9px 22px;background:var(--sb-accent);color:#fff;border:none;border-radius:var(--sb-radius);font-size:13px;cursor:pointer}
@@ -114,12 +150,20 @@ category:
 .cf-pagination__dots{font-size:13px;color:var(--sb-muted);padding:0 4px}
 .cf-grid-loading{grid-column:1/-1;text-align:center;padding:40px;color:var(--sb-muted);font-size:13px}
 @media(max-width:768px){
+    .cf-card__overlay .button {
+    background: #fff !important;
+    border: 0 !important;
+    border: 1px solid !important;
+    margin-bottom: 5px !important;
+    width: 100% !important;
+}
+
   .cf-page{flex-direction:column}
   .cf-grid{grid-template-columns:repeat(3,1fr);gap:16px}
   .cf-sidebar{display:none;width:100%;border-right:none;padding:0;position:static;max-height:none}
   .cf-main{padding-left:0}
   .cf-mobile-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .cf-mobile-filters-btn{display:flex;align-items:center;gap:6px;padding:9px 18px;background:var(--sb-accent);color:#fff;border:none;border-radius:var(--sb-radius);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.03em}
+  .cf-mobile-filters-btn{display:flex;align-items:center;gap:6px;width:100%;justify-content:center;padding:9px 18px;background:var(--sb-accent);color:#fff;border:none;border-radius:var(--sb-radius);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.03em}
   .cf-mobile-filters-btn svg{width:16px;height:16px}
   .cf-drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999}
   .cf-drawer-overlay.open{display:block}
@@ -251,6 +295,8 @@ var activeHeightMin=null,activeHeightMax=null;
 var activeDepthMin=null,activeDepthMax=null;
 
 var initialFacetValues={};
+var initialCatCountMap={};  // Store initial category counts for drill-down
+var initialCatEffective={}; // Store initial effective counts for drill-down
 var categorySectionRendered=false;
 var activeSubcats={};   // {subcat_id: name}
 var subcatMap={};       // {id: name} built from jsContext
@@ -263,7 +309,7 @@ var gridEl=document.getElementById('cf-grid');
 var paginationEl=document.getElementById('cf-pagination');
 var sortSel=document.getElementById('cf-sort-sel');
 
-function cacheKey(){return 'cf_ts_v4_'+CAT_ID;}
+function cacheKey(){return 'cf_ts_v5_'+CAT_ID;}
 function getCache(){try{var raw=sessionStorage.getItem(cacheKey());if(!raw)return null;var d=JSON.parse(raw);if(Date.now()-d.ts>CACHE_TTL){sessionStorage.removeItem(cacheKey());return null;}return d.data;}catch(e){return null;}}
 function setCache(d){try{sessionStorage.setItem(cacheKey(),JSON.stringify({ts:Date.now(),data:d}));}catch(e){}}
 
@@ -275,24 +321,38 @@ function getCatIds(){
     }).then(function(r){return r.json();}).then(function(data){
         var hit=data.hits&&data.hits[0]?data.hits[0].document:null;
         catIds=hit?[CAT_ID].concat(hit.descendant_ids||[]):[CAT_ID];
-        // Fetch names for all descendant IDs
-        var ids=catIds.slice(0,100);
-     return fetch(TS_HOST+'/collections/category_tree/documents/search?q=*&query_by=name&filter_by=cat_id:=['+ids.join(',')+']&per_page=250',{
-            headers:{'X-TYPESENSE-API-KEY':TS_KEY}
-        }).then(function(r2){return r2.json();}).then(function(d2){
-            (d2.hits||[]).forEach(function(h){
-                subcatMap[String(h.document.cat_id)]=h.document.name||'';
+        // Fetch names for all descendant IDs in batches of 250 (Typesense per_page max)
+        var BATCH=250;
+        var batches=[];
+        for(var i=0;i<catIds.length;i+=BATCH){batches.push(catIds.slice(i,i+BATCH));}
+        return Promise.all(batches.map(function(ids){
+            return fetch(TS_HOST+'/collections/category_tree/documents/search?q=*&query_by=name&filter_by=cat_id:=['+ids.join(',')+']&per_page=250',{
+                headers:{'X-TYPESENSE-API-KEY':TS_KEY}
+            }).then(function(r2){return r2.json();}).then(function(d2){
+                (d2.hits||[]).forEach(function(h){
+                    subcatMap[String(h.document.cat_id)]={name:h.document.name||'',parent_id:h.document.parent_id||0,descendant_ids:h.document.descendant_ids||[]};
+                });
             });
-            setCache({catIds:catIds,subcatMap:subcatMap});
-        });
+        })).then(function(){setCache({catIds:catIds,subcatMap:subcatMap});});
     }).catch(function(){catIds=[CAT_ID];});
 }
 
 function buildFilterStr(){
     var activeSubs=Object.keys(activeSubcats);
-    var catFilter=activeSubs.length>0
-        ?'categories:=['+activeSubs.join(',')+']'
-        :'categories:=['+catIds.join(',')+']';
+var catFilter;
+if(activeSubs.length>0){
+    var expandedSubs={};
+    activeSubs.forEach(function(sid){
+        expandedSubs[sid]=true;
+        var entry=subcatMap[sid];
+        if(entry&&entry.descendant_ids){
+            entry.descendant_ids.forEach(function(did){expandedSubs[String(did)]=true;});
+        }
+    });
+    catFilter='categories:=['+Object.keys(expandedSubs).join(',')+']';
+}else{
+    catFilter='categories:=['+catIds.join(',')+']';
+}
     var parts=[catFilter];
     Object.keys(activeFilters).forEach(function(field){
         var vals=Object.keys(activeFilters[field]);
@@ -325,7 +385,7 @@ function fetchProducts(){
     currentAbortController=new AbortController();
     gridEl.innerHTML='<div class="cf-grid-loading">Loading…</div>';
     var facetBy=FACET_FIELDS.map(function(f){return f.field;}).join(',')+',categories';
-    var params={q:'*',query_by:'name',filter_by:buildFilterStr(),facet_by:facetBy,max_facet_values:500,per_page:PAGE_SIZE,page:currentPage+1,sort_by:sortOrder};
+    var params={q:'*',query_by:'name',filter_by:buildFilterStr(),facet_by:facetBy,max_facet_values:2000,per_page:PAGE_SIZE,page:currentPage+1,sort_by:sortOrder};
     var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
     fetch(TS_HOST+'/collections/products/documents/search?'+qs,{
         headers:{'X-TYPESENSE-API-KEY':TS_KEY},
@@ -365,28 +425,101 @@ function renderCategorySection(catFacetCounts){
     var subs=[];
 // subcatMap already built in getCatIds from Typesense
 Object.keys(subcatMap).forEach(function(id){
-    subs.push({id:id, name:subcatMap[id]});
+    if(String(subcatMap[id].parent_id)===String(CAT_ID))
+        subs.push({id:id, name:subcatMap[id].name});
 });
 if(!subs||!subs.length)return;
 
     // Build count map from Typesense facet
-    var countMap={};
+var countMap={};
     (catFacetCounts||[]).forEach(function(c){countMap[String(c.value)]=c.count;});
 
-    var s=makeSection('Category');
+    var effectiveCount={};
+    Object.keys(subcatMap).forEach(function(id){
+        var cur=id;
+        while(cur&&subcatMap[cur]&&String(subcatMap[cur].parent_id)!==String(CAT_ID)){
+            cur=String(subcatMap[cur].parent_id);
+        }
+        if(cur&&subcatMap[cur]&&String(subcatMap[cur].parent_id)===String(CAT_ID)){
+            effectiveCount[cur]=(effectiveCount[cur]||0)+(countMap[id]||0);
+        }
+    });
+    // NOTE: direct subs of CAT_ID are already counted by the while-loop above
+    // (when parent_id===CAT_ID the loop exits with cur=id and adds countMap[id]).
+    // A separate subs.forEach adding countMap[sub.id] again would double-count.
+    // Store initial counts on first render for drill-down display
+    if(!Object.keys(initialCatCountMap).length){Object.keys(countMap).forEach(function(k){initialCatCountMap[k]=countMap[k];});}
+    if(!Object.keys(initialCatEffective).length){Object.keys(effectiveCount).forEach(function(k){initialCatEffective[k]=effectiveCount[k];});}
+
+var s=makeSection('Category');
     var ul=document.createElement('ul');ul.className='cf-list';
     subs.forEach(function(sub){
         var subId=String(sub.id||'');
-        var cnt=countMap[subId]||0;
-        if(!cnt&&!activeSubcats[subId])return; // hide 0-count unless active
+        var anyChildActive=Object.keys(subcatMap).some(function(id){
+            return String(subcatMap[id].parent_id)===String(subId)&&activeSubcats[id];
+        });
+        // Use initial count when a child is active (drill-down)
+        var cnt=anyChildActive?(initialCatEffective[subId]||effectiveCount[subId]||0):(effectiveCount[subId]||0);
+        if(!cnt&&!activeSubcats[subId]&&!anyChildActive)return;
         var checked=!!activeSubcats[subId];
-        var li=document.createElement('li');li.className='cf-list__item';
+        var li=document.createElement('li');li.className='cf-list__item cf-list__item--parent';
         li.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(subId)+'"'+(checked?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(sub.name||'')+'</span><span class="cf-option__count">'+cnt+'</span></label>';
         li.querySelector('input').addEventListener('change',function(e){
             if(e.target.checked)activeSubcats[subId]=sub.name||'';
             else delete activeSubcats[subId];
+            var cUl=li.querySelector('.cf-list--children');
+            if(cUl)cUl.style.display=e.target.checked?'block':'none';
             currentPage=0;renderChips();fetchProducts();
         });
+        // Find direct children of this sub
+        var children=Object.keys(subcatMap).filter(function(id){
+            return String(subcatMap[id].parent_id)===String(subId);
+        });
+        if(children.length){
+            var cUl=document.createElement('ul');cUl.className='cf-list cf-list--children';
+           var anyChildActive=Object.keys(subcatMap).some(function(id){
+    return String(subcatMap[id].parent_id)===String(subId)&&activeSubcats[id];
+});
+cUl.style.display=(checked||anyChildActive)?'block':'none';
+            children.forEach(function(childId){
+                // Roll up descendant counts (products are often tagged only to leaf categories)
+                var childCnt=countMap[childId]||0;
+                var entry=subcatMap[childId];
+                if(entry&&entry.descendant_ids){
+                    entry.descendant_ids.forEach(function(did){childCnt+=(countMap[String(did)]||0);});
+                }
+                // Use initial count for siblings when any child is active (drill-down)
+                if(anyChildActive && childCnt===0 && initialCatCountMap[childId]){childCnt=initialCatCountMap[childId];}
+                // Keep all children visible when parent or any sibling is active
+                if(!childCnt&&!activeSubcats[childId]&&!checked&&!anyChildActive)return;
+                var childChecked=!!activeSubcats[childId];
+                var cLi=document.createElement('li');cLi.className='cf-list__item';
+                cLi.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(childId)+'"'+(childChecked?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(subcatMap[childId].name||'')+'</span><span class="cf-option__count">'+childCnt+'</span></label>';
+            cLi.querySelector('input').addEventListener('change',function(e){
+    if(e.target.checked){
+        activeSubcats[childId]=subcatMap[childId].name||'';
+        // Drill-down: unselect parent when child is selected
+        delete activeSubcats[subId];
+    } else {
+        delete activeSubcats[childId];
+        // Uncheck parent if no children selected
+        var anyChildActive=Object.keys(subcatMap).some(function(id){
+            return String(subcatMap[id].parent_id)===String(subId)&&activeSubcats[id];
+        });
+        if(!anyChildActive)delete activeSubcats[subId];
+    }
+    // Keep children visible if any child is checked
+    var anyChildStillActive=Object.keys(subcatMap).some(function(id){
+        return String(subcatMap[id].parent_id)===String(subId)&&activeSubcats[id];
+    });
+    var cUlRef=li.querySelector('.cf-list--children');
+    if(cUlRef)cUlRef.style.display=anyChildStillActive?'block':'none';
+    currentPage=0;renderChips();fetchProducts();
+});
+                cUl.appendChild(cLi);
+            });
+            if(cUl.children.length)li.appendChild(cUl);
+        }
         ul.appendChild(li);
     });
 if(!ul.children.length)return;
@@ -516,6 +649,9 @@ function buildSearchBar(placeholder,onSearch){
 function buildHierarchyFacet(f){
     var wrap=document.createElement('div');
     var h=buildHierarchyFromValues(f.values);var tree=h.tree;var parentCounts=h.parentCounts;
+    // Build initial hierarchy for showing real counts when siblings are active
+    var initH=initialFacetValues[f.name]?buildHierarchyFromValues(initialFacetValues[f.name]):null;
+    var initTree=initH?initH.tree:{};var initParentCounts=initH?initH.parentCounts:{};
     var searchQ='';var SHOW=8;var exp=false;
     var root=document.createElement('ul');root.className='cf-list';
     var parentKeys=Object.keys(parentCounts).sort(function(a,b){return(parentCounts[b]||0)-(parentCounts[a]||0);});
@@ -530,15 +666,22 @@ function buildHierarchyFacet(f){
             var pChecked=activeFilters[f.name]&&activeFilters[f.name][parent];
             if(pChecked)return true;
             if((parentCounts[parent]||0)>0)return true;
+            var hasActiveChild=tree[parent]&&Object.keys(tree[parent]).some(function(c){
+                return activeFilters[f.name]&&activeFilters[f.name][parent+'>'+c];
+            });
+            // Only use initial counts for the parent that has active children
+            if(hasActiveChild&&(initParentCounts[parent]||0)>0)return true;
             if(tree[parent]&&Object.keys(tree[parent]).some(function(c){
-                return(tree[parent][c]||0)>0||(activeFilters[f.name]&&activeFilters[f.name][parent+'>'+c]);
+                return(tree[parent][c]||0)>0;
             }))return true;
             return false;
         });
         var list=(!searchQ&&!exp)?filtered.slice(0,SHOW):filtered;
         list.forEach(function(parent){
             var pChecked=activeFilters[f.name]&&activeFilters[f.name][parent];
-            var pCount=parentCounts[parent]||0;
+            var anyChildActive=tree[parent]&&Object.keys(tree[parent]).some(function(c){return activeFilters[f.name]&&activeFilters[f.name][parent+'>'+c];});
+            // Use initial parent count when a child is active (drill-down)
+            var pCount=anyChildActive?(initParentCounts[parent]||parentCounts[parent]||0):(parentCounts[parent]||0);
             var li=document.createElement('li');li.className='cf-list__item cf-list__item--parent';
             li.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(parent)+'"'+(pChecked?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(parent)+'</span><span class="cf-option__count">'+pCount+'</span></label>';
             li.querySelector('input').addEventListener('change',function(e){
@@ -557,13 +700,27 @@ function buildHierarchyFacet(f){
                 var anyChildChecked=childKeys.some(function(c){return activeFilters[f.name]&&activeFilters[f.name][parent+'>'+c];});
                 cUl.style.display=(pChecked||anyChildChecked)?'block':'none';
                 childFiltered.forEach(function(child){
-                    var fp=parent+'>'+child;var cc=activeFilters[f.name]&&activeFilters[f.name][fp];
+    var fp=parent+'>'+child;var cc=activeFilters[f.name]&&activeFilters[f.name][fp];
+    // Keep all children visible when parent or any sibling is active
+    if(!cc && !pChecked && !anyChildChecked && (children[child]||0)===0) return;
+    // Use initial count for siblings when any child is active (drill-down)
+    var childCount=(children[child]||0);
+    if(anyChildChecked && childCount===0 && initTree[parent]){childCount=initTree[parent][child]||0;}
                     var cLi=document.createElement('li');cLi.className='cf-list__item';
-                    cLi.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(fp)+'"'+(cc?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(child)+'</span><span class="cf-option__count">'+(children[child]||0)+'</span></label>';
+                    cLi.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(fp)+'"'+(cc?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(child)+'</span><span class="cf-option__count">'+childCount+'</span></label>';
                     cLi.querySelector('input').addEventListener('change',function(e){
                         if(!activeFilters[f.name])activeFilters[f.name]={};
-                        if(e.target.checked)activeFilters[f.name][fp]=true;else delete activeFilters[f.name][fp];
+                        if(e.target.checked){
+                            activeFilters[f.name][fp]=true;
+                            // Drill-down: unselect parent when child is selected
+                            delete activeFilters[f.name][parent];
+                        }else{
+                            delete activeFilters[f.name][fp];
+                        }
                         if(!Object.keys(activeFilters[f.name]).length)delete activeFilters[f.name];
+                        // Keep children visible if any child is checked
+                        var anyChildStillChecked=childKeys.some(function(c){return activeFilters[f.name]&&activeFilters[f.name][parent+'>'+c];});
+                        cUl.style.display=anyChildStillChecked?'block':'none';
                         currentPage=0;renderChips();fetchProducts();
                     });
                     cUl.appendChild(cLi);
@@ -587,7 +744,25 @@ function buildCheckboxes(f){
     var wrap=document.createElement('div');var values=f.values;
     var sorted=Object.keys(values).sort(function(a,b){return(values[b]||0)-(values[a]||0);});
     var SHOW=8,exp=false,searchQ='';var ul=document.createElement('ul');ul.className='cf-list';
-    function getFiltered(){if(!searchQ)return sorted;var q=searchQ.toLowerCase();return sorted.filter(function(v){return v.toLowerCase().includes(q);});}
+    var remoteValues={}; // values fetched via facet_query
+    var remoteFetching=false;
+    function getFiltered(){if(!searchQ)return sorted;var q=searchQ.toLowerCase();
+        var local=sorted.filter(function(v){return v.toLowerCase().includes(q);});
+        var remote=Object.keys(remoteValues).filter(function(v){return v.toLowerCase().includes(q);});
+        return Array.from(new Set(local.concat(remote)));
+    }
+    function fetchRemote(q){
+        if(!q||remoteFetching)return;
+        remoteFetching=true;
+        var p={q:'*',query_by:'name',filter_by:buildFilterStr(),facet_by:f.name,max_facet_values:100,per_page:0,facet_query:f.name+':'+q};
+        var qs=Object.keys(p).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(p[k]);}).join('&')+'&x-typesense-api-key='+encodeURIComponent(TS_KEY);
+        fetch(TS_HOST+'/collections/products/documents/search?'+qs).then(function(r){return r.json();}).then(function(d){
+            remoteFetching=false;
+            var fc=(d.facet_counts||[]).find(function(x){return x.field_name===f.name;});
+            if(fc&&fc.counts){fc.counts.forEach(function(c){if(!(c.value in values))remoteValues[c.value]=c.count;});}
+            if(searchQ===q.toLowerCase())render();
+        }).catch(function(){remoteFetching=false;});
+    }
     function render(){
         ul.innerHTML='';
         var filtered=getFiltered();
@@ -600,7 +775,8 @@ function buildCheckboxes(f){
         list.forEach(function(val){
             var checked=activeFilters[f.name]&&activeFilters[f.name][val];
             var li=document.createElement('li');li.className='cf-list__item';
-            li.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(val)+'"'+(checked?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(val)+'</span><span class="cf-option__count">'+(values[val]||0)+'</span></label>';
+            var cnt=(values[val]!=null?values[val]:(remoteValues[val]||0));
+            li.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(val)+'"'+(checked?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(val)+'</span><span class="cf-option__count">'+cnt+'</span></label>';
             li.querySelector('input').addEventListener('change',function(e){
                 if(!activeFilters[f.name])activeFilters[f.name]={};
                 if(e.target.checked)activeFilters[f.name][val]=true;else delete activeFilters[f.name][val];
@@ -611,7 +787,7 @@ function buildCheckboxes(f){
         });
         if(!searchQ&&hiddenCount>0){var btn=document.createElement('button');btn.className='cf-show-more';btn.textContent=exp?'- Show Less':'+ Show '+hiddenCount+' More';btn.addEventListener('click',function(){exp=!exp;render();});ul.appendChild(btn);}
     }
-    if(sorted.length>SHOW){var sb=buildSearchBar(f.label,function(q){searchQ=q;exp=!!q;render();});wrap.appendChild(sb);}
+    if(sorted.length>SHOW){var sb=buildSearchBar(f.label,function(q){searchQ=q;exp=!!q;render();if(q&&q.length>=2)fetchRemote(q);});wrap.appendChild(sb);}
     render();wrap.appendChild(ul);return wrap;
 }
 
@@ -673,14 +849,20 @@ function renderGrid(products){
     gridEl.innerHTML='';
     if(!products.length){gridEl.innerHTML='<div class="cf-empty"><p>No products match your filters.</p><button onclick="clearAll()">Clear All Filters</button></div>';return;}
     products.forEach(function(p){
-        var card=document.createElement('a');card.className='cf-card';card.href=p.path||'#';
+        var card=document.createElement('div');card.className='cf-card';
+        var href=p.path||'#';
         var imgHtml=p.image_url?'<img class="cf-card__img" src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" loading="lazy"/>':'<div class="cf-card__img-ph">&#128206;</div>';
         var hasSale=p.is_on_sale;var priceHtml='';
         if(p.msrp&&Number(p.msrp)>0&&p.price&&Number(p.msrp)>Number(p.price)){priceHtml='<span class="cf-card__msrp">MSRP $'+Number(p.msrp).toFixed(2)+'</span><span class="cf-card__price">$'+Number(p.price).toFixed(2)+'</span>';}
         else if(p.price){priceHtml='<span class="cf-card__price">$'+Number(p.price).toFixed(2)+'</span>';}
-        card.innerHTML='<div class="cf-card__img-wrap">'+imgHtml+(hasSale?'<div class="sale-flag-side pdp-sale-badge-c"><span class="sale-text">On Sale!</span></div>':'')+'</div>'+
+        var overlayHtml='<div class="cf-card__overlay">'+
+            '<button type="button" class="button button--small cf-card__overlay-btn quickview" data-product-id="'+esc(String(p.id))+'" data-event-type="product-click">Quick View</button>'+
+            '<a href="/cart.php?action=add&product_id='+esc(String(p.id))+'" class="button button--small cf-card__overlay-btn cf-card__add-cart" data-event-type="product-click" data-button-type="add-cart">Add to Cart</a>'+
+            '</div>';
+        card.innerHTML='<a class="cf-card__link" href="'+esc(href)+'"><div class="cf-card__img-wrap">'+imgHtml+(hasSale?'<div class="sale-flag-side pdp-sale-badge-c"><span class="sale-text">On Sale!</span></div>':'')+'</div>'+
             '<div class="cf-card__body">'+(p.brand?'<div class="cf-card__brand">by '+esc(p.brand)+'</div>':'')+
-            '<div class="cf-card__name">'+esc(p.name)+'</div><div class="cf-card__prices">'+priceHtml+'</div></div>';
+            '<div class="cf-card__name">'+esc(p.name)+'</div><div class="cf-card__prices">'+priceHtml+'</div></div></a>'+
+            overlayHtml;
         gridEl.appendChild(card);
     });
 }
@@ -725,7 +907,7 @@ function renderPagination(){
     if(!paginationEl)return;var totalPages=Math.ceil(totalCount/PAGE_SIZE);
     if(totalPages<=1){paginationEl.style.display='none';return;}
     paginationEl.style.display='flex';paginationEl.innerHTML='';
-    function addBtn(label,page,isActive,isDisabled){var btn=document.createElement('button');btn.className='cf-pagination__btn'+(isActive?' active':'');btn.textContent=label;btn.disabled=isDisabled;if(!isDisabled&&!isActive){btn.addEventListener('click',function(){currentPage=page;window.scrollTo({top:0,behavior:'smooth'});fetchProducts();});}paginationEl.appendChild(btn);}
+    function addBtn(label,page,isActive,isDisabled){var btn=document.createElement('button');btn.className='cf-pagination__btn'+(isActive?' active':'');btn.textContent=label;btn.disabled=isDisabled;if(!isDisabled&&!isActive){btn.addEventListener('click',function(){currentPage=page;var mainEl=document.querySelector('.cf-main');if(mainEl){var hdr=document.querySelector('header');var offset=hdr?hdr.offsetHeight:0;var top=mainEl.getBoundingClientRect().top+window.pageYOffset-offset;window.scrollTo({top:top,behavior:'smooth'});}fetchProducts();});}paginationEl.appendChild(btn);}
     function addDots(){var d=document.createElement('span');d.className='cf-pagination__dots';d.textContent='…';paginationEl.appendChild(d);}
     addBtn('←',currentPage-1,false,currentPage===0);
     var lastDots=false;
@@ -749,18 +931,17 @@ var drawerFacets=document.getElementById('cf-drawer-facets');
 var drawerCount=document.getElementById('cf-drawer-count');
 var mobileBtn=document.getElementById('cf-mobile-filters-btn');
 function openDrawer(){
-    drawerFacets.innerHTML='';drawerFacets.appendChild(facetsEl.cloneNode(true));
-    drawerFacets.querySelectorAll('input[type=checkbox]').forEach(function(inp){
-        inp.addEventListener('change',function(){
-            var val=inp.value;
-            var sidebarInp=facetsEl.querySelector('input[value="'+CSS.escape(val)+'"]');
-            if(sidebarInp){sidebarInp.checked=inp.checked;sidebarInp.dispatchEvent(new Event('change'));}
-        });
-    });
+    // Move facetsEl into drawer (keeps event listeners intact, sidebar is hidden on mobile)
+    drawerFacets.innerHTML='';drawerFacets.appendChild(facetsEl);
     if(drawerCount)drawerCount.textContent=totalCount+' Results';
     drawer.classList.add('open');drawerOverlay.classList.add('open');document.body.style.overflow='hidden';
 }
-function closeDrawer(){drawer.classList.remove('open');drawerOverlay.classList.remove('open');document.body.style.overflow='';}
+function closeDrawer(){
+    // Move facetsEl back to sidebar
+    var sidebar=document.querySelector('.cf-sidebar');
+    if(sidebar&&facetsEl.parentNode===drawerFacets){sidebar.appendChild(facetsEl);}
+    drawer.classList.remove('open');drawerOverlay.classList.remove('open');document.body.style.overflow='';
+}
 if(mobileBtn)mobileBtn.addEventListener('click',openDrawer);
 if(drawerOverlay)drawerOverlay.addEventListener('click',closeDrawer);
 if(document.getElementById('cf-drawer-done'))document.getElementById('cf-drawer-done').addEventListener('click',closeDrawer);
@@ -770,10 +951,104 @@ if(sortSel)sortSel.addEventListener('change',function(){sortOrder=sortSel.value;
 document.addEventListener('DOMContentLoaded',function(){
     CAT_ID=parseInt((document.getElementById('cf-app')||{dataset:{}}).dataset.categoryId||'0',10);
     if(!CAT_ID){facetsEl.innerHTML='<p style="font-size:12px;color:#c00">Category ID missing.</p>';return;}
+    // Apply filters from URL query params (e.g. /shop/?cf_collections=Emily)
+    var hasUrlFilters=false;
+    try{
+        var qsParams=new URLSearchParams(window.location.search);
+        var facetFieldNames=FACET_FIELDS.map(function(f){return f.field;});
+        qsParams.forEach(function(value,key){
+            if(facetFieldNames.indexOf(key)===-1||!value)return;
+            if(!activeFilters[key])activeFilters[key]={};
+            value.split(',').forEach(function(v){v=v.trim();if(v)activeFilters[key][v]=true;});
+            hasUrlFilters=true;
+        });
+    }catch(e){}
+    // Scroll to filter/product area when arriving with filter params or #cf-app hash
+    if(hasUrlFilters||window.location.hash==='#cf-app'){
+        setTimeout(function(){
+            var el=document.getElementById('cf-app');
+            if(!el)return;
+            // Detect header height (sticky/fixed) so element doesn't get hidden behind it
+            var headerH=0;
+            var hdr=document.querySelector('header')||document.querySelector('.header')||document.querySelector('#headerNav');
+            if(hdr){
+                var cs=window.getComputedStyle(hdr);
+                if(cs.position==='fixed'||cs.position==='sticky')headerH=hdr.getBoundingClientRect().height;
+            }
+            var y=el.getBoundingClientRect().top+window.pageYOffset-headerH-10;
+            window.scrollTo({top:y,behavior:'auto'});
+        },50);
+    }
     getCatIds().then(function(){fetchProducts();});
 });
 
 })();
+</script>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "{{category.name}}",
+  "url": "{{category.url}}",
+  "hasPart": [
+    {{#each category.products}}
+    {
+      "@type": "Product",
+      "name": "{{name}}",
+      "url": "{{url}}",
+      "image": "{{getImage image 'grande'}}",
+      "description": "{{summary}}",
+      "brand": {
+        "@type": "Brand",
+        "name": "{{brand.name}}"
+      },
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "price": "{{price.without_tax.value}}",
+        "availability": "https://schema.org/InStock",
+ "shippingDetails": {
+  "@type": "OfferShippingDetails",
+  "shippingRate": {
+    "@type": "MonetaryAmount",
+    "value": "0",
+    "currency": "USD"
+  },
+  "shippingDestination": {
+    "@type": "DefinedRegion",
+    "addressCountry": "US"
+  },
+  "deliveryTime": {
+    "@type": "ShippingDeliveryTime",
+    "handlingTime": {
+      "@type": "QuantitativeValue",
+      "minValue": 1,
+      "maxValue": 2,
+      "unitCode": "DAY"
+    },
+    "transitTime": {
+      "@type": "QuantitativeValue",
+      "minValue": 3,
+      "maxValue": 7,
+      "unitCode": "DAY"
+    }
+  }
+},
+        "hasMerchantReturnPolicy": {
+          "@type": "MerchantReturnPolicy",
+          "applicableCountry": "US",
+          "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+          "merchantReturnDays": 30,
+          "returnMethod": "https://schema.org/ReturnByMail",
+          "returnFees": "https://schema.org/FreeReturn"
+        }
+      }
+    }{{#unless @last}},{{/unless}}
+    {{/each}}
+  ]
+}
 </script>
 {{/partial}}
 {{> layout/base}}

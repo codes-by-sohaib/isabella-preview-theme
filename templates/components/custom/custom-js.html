@@ -1,4 +1,39 @@
 
+
+<script>
+    (function () {
+  'use strict';
+
+  var skuSource = document.querySelector('[data-product-sku]');
+  var skuDisplay = document.getElementById('variant-sku-display');
+  var skuPart = document.getElementById('variant-sku-part');
+  var skuString = document.getElementById('variant-sku-string');
+
+  if (!skuSource || !skuDisplay || !skuPart || !skuString) return;
+
+  function updateDisplay() {
+    var raw = skuSource.textContent.trim();
+    if (!raw) {
+      skuDisplay.style.display = 'none';
+      return;
+    }
+
+    var parts = raw.split(' | ');
+    skuPart.textContent = parts[0] || raw;
+    skuString.textContent = parts[1] || '';
+    skuDisplay.style.display = parts[1] ? '' : 'none';
+  }
+
+  // Watch for SKU changes
+  new MutationObserver(updateDisplay).observe(skuSource, {
+    childList: true, characterData: true, subtree: true
+  });
+
+  // Initial check
+  updateDisplay();
+})();
+</script>
+
 <!--Yotpo code after description product pages-->
 
 <script type="text/javascript">

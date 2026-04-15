@@ -60,43 +60,53 @@
                 </a>
             </li>
         {{/if}}
-        <li class="navUser-item navUser-item--account">
-            <a class="navUser-action"
-                {{#if customer}}
-                href="{{urls.account.index}}"
-                aria-label="{{lang 'common.account'}}"
-                {{else}}
-                href="{{urls.auth.login}}"
-                aria-label="{{lang 'common.login'}}"
-                {{/if}}
-            >
-                <i class="icon" aria-hidden="true">
-                    <svg>
-                        <use href="#icon-epic-user"></use>
-                    </svg>
-                </i>
-                {{#if theme_settings.epic-show-header-icon-labels}}
-                  {{#if customer}}
-                  {{lang 'common.account'}}
-                  {{else}}
-                  {{lang 'common.login'}}
-                  {{/if}}
-                {{/if}}
-            </a>
-            {{#if settings.account_creation_enabled}}
-              {{#if theme_settings.epic-show-header-icon-labels}}
-                {{#unless customer}}
-                    <span class="navUser-or">{{lang 'common.or'}}</span>
-                    <a class="navUser-action"
-                        href="{{urls.auth.create_account}}"
-                        aria-label="{{lang 'common.sign_up'}}"
-                    >
-                        {{lang 'common.sign_up'}}
-                    </a>
-                {{/unless}}
-              {{/if}}
+<li class="navUser-item navUser-item--account">
+    <a class="navUser-action"
+        {{#if customer}}
+        href="{{urls.account.index}}"
+        aria-label="{{lang 'common.account'}}"
+        {{else}}
+        href="{{urls.auth.login}}"
+        aria-label="{{lang 'common.login'}}"
+        {{/if}}
+    >
+        <i class="icon" aria-hidden="true">
+            <svg>
+                <use href="#icon-epic-user"></use>
+            </svg>
+        </i>
+        {{#if theme_settings.epic-show-header-icon-labels}}
+          {{#if customer}}
+          {{lang 'common.account'}}
+          {{else}}
+          {{lang 'common.login'}}
+          {{/if}}
+        {{/if}}
+    </a>
+    {{#if customer}}
+        <a class="navUser-action"
+            href="/login.php?action=logout"
+            aria-label="Logout"
+        >
+            {{#if theme_settings.epic-show-header-icon-labels}}
+                Logout
             {{/if}}
-        </li>
+        </a>
+    {{/if}}
+    {{#if settings.account_creation_enabled}}
+      {{#if theme_settings.epic-show-header-icon-labels}}
+        {{#unless customer}}
+            <span class="navUser-or">{{lang 'common.or'}}</span>
+            <a class="navUser-action"
+                href="{{urls.auth.create_account}}"
+                aria-label="{{lang 'common.sign_up'}}"
+            >
+                {{lang 'common.sign_up'}}
+            </a>
+        {{/unless}}
+      {{/if}}
+    {{/if}}
+</li>
         {{#or customer (unless settings.hide_price_from_guests)}}
             {{#gt (length currency_selector.currencies) 1}}
                 <li class="navUser-item navUser-item--currency ">

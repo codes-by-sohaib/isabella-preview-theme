@@ -51,7 +51,7 @@
         {{~inject 'carouselContentAnnounceMessage' (lang 'carousel.content_announce_message')}}
         {{~inject 'giftWrappingRemoveMessage' (lang 'cart.gift_wrapping.remove_confirm')}}
     </head>
-    <body class="page-type_{{page_type}}{{#if theme_settings.epic-toggle-search}} has--epic-search{{/if}}{{#if theme_settings.epic-toggle-sticky-header}} has--header-sticky{{/if}}{{#if theme_settings.epic-sitewide-message}} has--epic-sitewide{{/if}}">
+<body class="page-type_{{page_type}}{{#if page.id}} page-id-{{page.id}}{{/if}}{{#if category.id}} page-id-{{category.id}}{{/if}}{{#if product.id}} page-id-{{product.id}}{{/if}}{{#if brand.id}} page-id-{{brand.id}}{{/if}}{{#if theme_settings.epic-toggle-search}} has--epic-search{{/if}}{{#if theme_settings.epic-toggle-sticky-header}} has--header-sticky{{/if}}{{#if theme_settings.epic-sitewide-message}} has--epic-sitewide{{/if}}">
         <svg data-src="{{cdn 'img/icon-sprite.svg'}}" class="icons-svg-sprite"></svg>
 
         {{> components/common/header }}

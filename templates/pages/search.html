@@ -9,6 +9,35 @@ product_results:
     {{#if pagination.product_results.previous}}<link rel="prev" href="{{pagination.product_results.previous}}">{{/if}}
     {{#if pagination.product_results.next}}<link rel="next" href="{{pagination.product_results.next}}">{{/if}}
 <style>
+.cf-card__add-cart {
+    margin-left: 0 !important;
+}
+
+.cf-card__overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+    background: transparent;
+    opacity: 0;
+    transition: opacity .2s;
+    pointer-events: none;
+    z-index: 3;
+    top: 0;
+    justify-content: center;
+}
+.cf-card__overlay .button {
+    background: #fff !important;
+    border: 1px solid;
+    margin-bottom: 5px !important;
+}
+
+
 :root{--sb-border:#e2e0db;--sb-text:#1a1a1a;--sb-muted:#666;--sb-light:#999;--sb-accent:#1a6b3c;--sb-radius:2px;--sb-font:inherit}
 #faceted-search-container,.page-sidebar{display:none!important}
 .cf-page{display:flex;align-items:flex-start;min-height:80vh}
@@ -61,7 +90,8 @@ product_results:
 .cf-sort select{font-size:12px;border:1px solid var(--sb-border);border-radius:var(--sb-radius);padding:5px 10px;background:#fff;color:var(--sb-text);cursor:pointer}
 .cf-sort select:focus{outline:none}
 .cf-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
-.cf-card{border:1px solid var(--sb-border);border-radius:4px;overflow:hidden;background:#fff;transition:box-shadow .2s,transform .15s;text-decoration:none;color:inherit;display:block}
+.cf-card{position:relative;border:1px solid var(--sb-border);border-radius:4px;overflow:hidden;background:#fff;transition:box-shadow .2s,transform .15s;text-decoration:none;color:inherit;display:block}
+.cf-card__link{display:block;text-decoration:none;color:inherit}
 .cf-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px)}
 .cf-card__img-wrap{position:relative;aspect-ratio:1;overflow:hidden;background:#f5f5f5}
 .cf-card__img{width:100%;height:100%;object-fit:contain;padding:8px;transition:transform .2s}.cf-card:hover .cf-card__img{transform:scale(1.03)}
@@ -71,6 +101,14 @@ product_results:
 .cf-card__prices{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
 .cf-card__price{font-size:14px;font-weight:600;color:var(--sb-text)}.cf-card__msrp{font-size:11px;color:var(--sb-light);text-decoration:line-through}
 .cf-card__img-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:36px}
+.cf-card__overlay{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;background:rgba(255,255,255,.92);opacity:0;transition:opacity .2s;pointer-events:none;z-index:3}
+.cf-card:hover .cf-card__overlay{opacity:1;pointer-events:all}
+.cf-card__overlay-btn{display:inline-block;padding:6px 14px;font-size:12px;font-weight:600;text-align:center;border-radius:3px;cursor:pointer;text-decoration:none;width:80%;max-width:180px;border:1px solid #333;background:#fff;color:#333;transition:background .15s,color .15s}
+.cf-card__overlay-btn:hover{background:#333;color:#fff}
+.cf-card__add-cart{background:#333;color:#fff;border-color:#333}
+.cf-card__add-cart:hover{background:#555;border-color:#555}
+@media(max-width:800px){.cf-card__overlay{opacity:1;pointer-events:all;position:relative;background:transparent;padding:4px 12px 8px}
+.cf-card__overlay-btn{font-size:11px;padding:5px 10px}}
 .cf-empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--sb-muted)}
 .cf-empty p{font-size:15px;margin-bottom:12px}
 .cf-pagination{display:flex;align-items:center;justify-content:center;gap:4px;padding:28px 0 8px;flex-wrap:wrap}
@@ -81,12 +119,19 @@ product_results:
 .cf-pagination__dots{font-size:13px;color:var(--sb-muted);padding:0 4px}
 .cf-grid-loading{grid-column:1/-1;text-align:center;padding:40px;color:var(--sb-muted);font-size:13px}
 @media(max-width:768px){
+        .cf-card__overlay .button {
+    background: #fff !important;
+    border: 0 !important;
+    border: 1px solid !important;
+    margin-bottom: 5px !important;
+    width: 100% !important;
+}
   .cf-page{flex-direction:column}
   .cf-grid{grid-template-columns:repeat(3,1fr);gap:16px}
   .cf-sidebar{display:none;width:100%;border-right:none;padding:0;position:static;max-height:none}
   .cf-main{padding-left:0}
   .cf-mobile-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .cf-mobile-filters-btn{display:flex;align-items:center;gap:6px;padding:9px 18px;background:var(--sb-accent);color:#fff;border:none;border-radius:var(--sb-radius);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.03em}
+  .cf-mobile-filters-btn{display:flex;align-items:center;gap:6px;width:100%;justify-content:center;padding:9px 18px;background:var(--sb-accent);color:#fff;border:none;border-radius:var(--sb-radius);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.03em}
   .cf-mobile-filters-btn svg{width:16px;height:16px}
   .cf-drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999}
   .cf-drawer-overlay.open{display:block}
@@ -247,7 +292,7 @@ function fetchProducts(){
     currentAbortController=new AbortController();
     gridEl.innerHTML='<div class="cf-grid-loading">Loading…</div>';
     var facetBy=FACET_FIELDS.map(function(f){return f.field;}).join(',');
-    var params={q:SEARCH_QUERY,query_by:'name,brand',facet_by:facetBy,max_facet_values:500,per_page:PAGE_SIZE,page:currentPage+1};
+    var params={q:SEARCH_QUERY,query_by:'name,brand',facet_by:facetBy,max_facet_values:2000,per_page:PAGE_SIZE,page:currentPage+1};
     var filterStr=buildFilterStr();
     if(filterStr)params.filter_by=filterStr;
     if(sortOrder)params.sort_by=sortOrder;
@@ -377,6 +422,9 @@ function buildSearchBar(placeholder,onSearch){
 function buildHierarchyFacet(f){
     var wrap=document.createElement('div');
     var h=buildHierarchyFromValues(f.values);var tree=h.tree;var parentCounts=h.parentCounts;
+    // Build initial hierarchy for showing real counts when siblings are active
+    var initH=initialFacetValues[f.name]?buildHierarchyFromValues(initialFacetValues[f.name]):null;
+    var initTree=initH?initH.tree:{};var initParentCounts=initH?initH.parentCounts:{};
     var searchQ='';var SHOW=8;var exp=false;
     var root=document.createElement('ul');root.className='cf-list';
     var parentKeys=Object.keys(parentCounts).sort(function(a,b){return(parentCounts[b]||0)-(parentCounts[a]||0);});
@@ -389,13 +437,17 @@ function buildHierarchyFacet(f){
         filtered=filtered.filter(function(parent){
             var pChecked=activeFilters[f.name]&&activeFilters[f.name][parent];
             if(pChecked)return true;if((parentCounts[parent]||0)>0)return true;
-            if(tree[parent]&&Object.keys(tree[parent]).some(function(c){return(tree[parent][c]||0)>0||(activeFilters[f.name]&&activeFilters[f.name][parent+'>'+c]);}))return true;
+            var hasActiveChild=tree[parent]&&Object.keys(tree[parent]).some(function(c){return activeFilters[f.name]&&activeFilters[f.name][parent+'>'+c];});
+            if(hasActiveChild&&(initParentCounts[parent]||0)>0)return true;
+            if(tree[parent]&&Object.keys(tree[parent]).some(function(c){return(tree[parent][c]||0)>0;}))return true;
             return false;
         });
         var list=(!searchQ&&!exp)?filtered.slice(0,SHOW):filtered;
         list.forEach(function(parent){
             var pChecked=activeFilters[f.name]&&activeFilters[f.name][parent];
-            var pCount=parentCounts[parent]||0;
+            var anyChildActive=tree[parent]&&Object.keys(tree[parent]).some(function(c){return activeFilters[f.name]&&activeFilters[f.name][parent+'>'+c];});
+            // Use initial parent count when a child is active (drill-down)
+            var pCount=anyChildActive?(initParentCounts[parent]||parentCounts[parent]||0):(parentCounts[parent]||0);
             var li=document.createElement('li');li.className='cf-list__item cf-list__item--parent';
             li.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(parent)+'"'+(pChecked?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(parent)+'</span><span class="cf-option__count">'+pCount+'</span></label>';
             li.querySelector('input').addEventListener('change',function(e){
@@ -415,12 +467,24 @@ function buildHierarchyFacet(f){
                 cUl.style.display=(pChecked||anyChildChecked)?'block':'none';
                 childFiltered.forEach(function(child){
                     var fp=parent+'>'+child;var cc=activeFilters[f.name]&&activeFilters[f.name][fp];
+                    // Use initial count for siblings when any child is active (drill-down)
+                    var childCount=(children[child]||0);
+                    if(anyChildChecked && childCount===0 && initTree[parent]){childCount=initTree[parent][child]||0;}
                     var cLi=document.createElement('li');cLi.className='cf-list__item';
-                    cLi.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(fp)+'"'+(cc?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(child)+'</span><span class="cf-option__count">'+(children[child]||0)+'</span></label>';
+                    cLi.innerHTML='<label class="cf-option"><input type="checkbox" value="'+esc(fp)+'"'+(cc?' checked':'')+'/><span class="cf-option__box"></span><span class="cf-option__label">'+esc(child)+'</span><span class="cf-option__count">'+childCount+'</span></label>';
                     cLi.querySelector('input').addEventListener('change',function(e){
                         if(!activeFilters[f.name])activeFilters[f.name]={};
-                        if(e.target.checked)activeFilters[f.name][fp]=true;else delete activeFilters[f.name][fp];
+                        if(e.target.checked){
+                            activeFilters[f.name][fp]=true;
+                            // Drill-down: unselect parent when child is selected
+                            delete activeFilters[f.name][parent];
+                        }else{
+                            delete activeFilters[f.name][fp];
+                        }
                         if(!Object.keys(activeFilters[f.name]).length)delete activeFilters[f.name];
+                        // Keep children visible if any child is checked
+                        var anyChildStillChecked=childKeys.some(function(c){return activeFilters[f.name]&&activeFilters[f.name][parent+'>'+c];});
+                        cUl.style.display=anyChildStillChecked?'block':'none';
                         currentPage=0;renderChips();fetchProducts();
                     });
                     cUl.appendChild(cLi);
@@ -528,14 +592,20 @@ function renderGrid(products){
     gridEl.innerHTML='';
     if(!products.length){gridEl.innerHTML='<div class="cf-empty"><p>No products found for "'+esc(SEARCH_QUERY)+'".</p></div>';return;}
     products.forEach(function(p){
-        var card=document.createElement('a');card.className='cf-card';card.href=p.path||'#';
+        var card=document.createElement('div');card.className='cf-card';
+        var href=p.path||'#';
         var imgHtml=p.image_url?'<img class="cf-card__img" src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" loading="lazy"/>':'<div class="cf-card__img-ph">&#128206;</div>';
         var hasSale=p.is_on_sale;var priceHtml='';
         if(p.msrp&&Number(p.msrp)>0&&p.price&&Number(p.msrp)>Number(p.price)){priceHtml='<span class="cf-card__msrp">MSRP $'+Number(p.msrp).toFixed(2)+'</span><span class="cf-card__price">$'+Number(p.price).toFixed(2)+'</span>';}
         else if(p.price){priceHtml='<span class="cf-card__price">$'+Number(p.price).toFixed(2)+'</span>';}
-        card.innerHTML='<div class="cf-card__img-wrap">'+imgHtml+(hasSale?'<div class="sale-flag-side pdp-sale-badge-c"><span class="sale-text">On Sale!</span></div>':'')+'</div>'+
+        var overlayHtml='<div class="cf-card__overlay">'+
+            '<button type="button" class="button button--small cf-card__overlay-btn quickview" data-product-id="'+esc(String(p.id))+'" data-event-type="product-click">Quick View</button>'+
+            '<a href="/cart.php?action=add&product_id='+esc(String(p.id))+'" class="button button--small cf-card__overlay-btn cf-card__add-cart" data-event-type="product-click" data-button-type="add-cart">Add to Cart</a>'+
+            '</div>';
+        card.innerHTML='<a class="cf-card__link" href="'+esc(href)+'"><div class="cf-card__img-wrap">'+imgHtml+(hasSale?'<div class="sale-flag-side pdp-sale-badge-c"><span class="sale-text">On Sale!</span></div>':'')+'</div>'+
             '<div class="cf-card__body">'+(p.brand?'<div class="cf-card__brand">by '+esc(p.brand)+'</div>':'')+
-            '<div class="cf-card__name">'+esc(p.name)+'</div><div class="cf-card__prices">'+priceHtml+'</div></div>';
+            '<div class="cf-card__name">'+esc(p.name)+'</div><div class="cf-card__prices">'+priceHtml+'</div></div></a>'+
+            overlayHtml;
         gridEl.appendChild(card);
     });
 }
@@ -599,18 +669,17 @@ var drawerFacets=document.getElementById('cf-drawer-facets');
 var drawerCount=document.getElementById('cf-drawer-count');
 var mobileBtn=document.getElementById('cf-mobile-filters-btn');
 function openDrawer(){
-    drawerFacets.innerHTML='';drawerFacets.appendChild(facetsEl.cloneNode(true));
-    drawerFacets.querySelectorAll('input[type=checkbox]').forEach(function(inp){
-        inp.addEventListener('change',function(){
-            var val=inp.value;
-            var sidebarInp=facetsEl.querySelector('input[value="'+CSS.escape(val)+'"]');
-            if(sidebarInp){sidebarInp.checked=inp.checked;sidebarInp.dispatchEvent(new Event('change'));}
-        });
-    });
+    // Move facetsEl into drawer (keeps event listeners intact, sidebar is hidden on mobile)
+    drawerFacets.innerHTML='';drawerFacets.appendChild(facetsEl);
     if(drawerCount)drawerCount.textContent=totalCount+' Results';
     drawer.classList.add('open');drawerOverlay.classList.add('open');document.body.style.overflow='hidden';
 }
-function closeDrawer(){drawer.classList.remove('open');drawerOverlay.classList.remove('open');document.body.style.overflow='';}
+function closeDrawer(){
+    // Move facetsEl back to sidebar
+    var sidebar=document.querySelector('.cf-sidebar');
+    if(sidebar&&facetsEl.parentNode===drawerFacets){sidebar.appendChild(facetsEl);}
+    drawer.classList.remove('open');drawerOverlay.classList.remove('open');document.body.style.overflow='';
+}
 if(mobileBtn)mobileBtn.addEventListener('click',openDrawer);
 if(drawerOverlay)drawerOverlay.addEventListener('click',closeDrawer);
 if(document.getElementById('cf-drawer-done'))document.getElementById('cf-drawer-done').addEventListener('click',closeDrawer);

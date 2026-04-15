@@ -7,80 +7,8 @@
     <ul class="navPages-list{{#if theme_settings.navigation_design '!==' 'simple'}} navPages-list-depth-max{{/if}}">
         {{#unless theme_settings.epic-hide-category-navigation}}
        <nav class="navPages">
-    <ul class="navPages-list">
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/just-arrived/">Just Arrived</a>
-        </li>
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/lighting/">Lighting</a>
-        </li>
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/mirrors/">Mirrors</a>
-        </li>
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/furniture/">Furniture</a>
-        </li>
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/fans/">Fans</a>
-        </li>
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/decor/">Decor</a>
-        </li>
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/sale/">Sale</a>
-        </li>
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/trade/">ISABELLE'S TRADE+</a>
-        </li>
-
-<li class="navPages-item navPages-item-page navPages-item-guides is-hidden">
-                            <a class="navPages-action navPages-action-depth-max has-subMenu is-root" href="/guides/" data-collapsible="navPages-guides" aria-label="Guides" aria-controls="navPages-guides" aria-expanded="true">
-        Guides
-        <i class="icon navPages-action-moreIcon" aria-hidden="true">
-            <svg><use href="#icon-chevron-down"></use></svg>
-        </i>
-    </a>
-    <div class="navPage-subMenu navPage-subMenu-horizontal" id="navPages-guides" aria-hidden="false" tabindex="-1">
-    <ul class="navPage-subMenu-list">
-            <li class="navPage-subMenu-item-child">
-                    <a class="navPage-subMenu-action navPages-action" href="/help-center/">Help Center</a>
-            </li>
-            <li class="navPage-subMenu-item-child">
-                    <a class="navPage-subMenu-action navPages-action" href="/style-light/">Style + Light</a>
-            </li>
-            <li class="navPage-subMenu-item-child">
-                    <a class="navPage-subMenu-action navPages-action" href="/your-privacy/">Your Privacy</a>
-            </li>
-    </ul>
-</div>
-                 </li>
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/talk-to-an-expert/">
-                Talk to an Expert
-            </a>
-        </li>
-
-        <li class="navPages-item">
-            <a class="navPages-action" href="/about-us/">
-                About Us
-            </a>
-        </li>
-
-    </ul>
-</nav>
-        {{/unless}}
-        
-    </ul>
-    <ul class="navPages-list navPages-list--user">
+           
+        <ul class="navPages-list navPages-list--user">
         {{#if currency_selector.currencies.length '>' 1}}
             <li class="navPages-item">
                 <a class="navPages-action has-subMenu"
@@ -268,10 +196,88 @@
                 {{/if}}
             </li>
         {{/if}}
-        {{#if theme_settings.social_icon_placement_top}}
+  
+    </ul>       
+    <ul class="navPages-list">
+        
+        
+        
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/lighting/">Lighting</a>
+        </li>
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/fans/">Ceiling Fans</a>
+        </li>
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/mirrors/">Mirrors</a>
+        </li>
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/furniture/">Furniture</a>
+        </li>
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/decor/">Décor</a>
+        </li>
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/sale/">Sale</a>
+        </li>
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/just-arrived/">Just Arrived</a>
+        </li>
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/trade/">Trade+</a>
+        </li>
+
+<li class="navPages-item navPages-item-page navPages-item-guides is-hidden">
+                            <a class="navPages-action navPages-action-depth-max has-subMenu is-root" href="/guides/" data-collapsible="navPages-guides" aria-label="Guides" aria-controls="navPages-guides" aria-expanded="true">
+        Guides
+        <i class="icon navPages-action-moreIcon" aria-hidden="true">
+            <svg><use href="#icon-chevron-down"></use></svg>
+        </i>
+    </a>
+    <div class="navPage-subMenu navPage-subMenu-horizontal" id="navPages-guides" aria-hidden="false" tabindex="-1">
+    <ul class="navPage-subMenu-list">
+            <li class="navPage-subMenu-item-child">
+                    <a class="navPage-subMenu-action navPages-action" href="/help-center/">Help Center</a>
+            </li>
+            <li class="navPage-subMenu-item-child">
+                    <a class="navPage-subMenu-action navPages-action" href="/style-light/">Style + Light</a>
+            </li>
+            <li class="navPage-subMenu-item-child">
+                    <a class="navPage-subMenu-action navPages-action" href="/your-privacy/">Your Privacy</a>
+            </li>
+    </ul>
+</div>
+                 </li>
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/about-us/">
+                About Us
+            </a>
+        </li>
+
+        <li class="navPages-item">
+            <a class="navPages-action" href="/talk-to-an-expert/">
+                Talk to an Expert
+            </a>
+        </li>
+
+    </ul>
+          {{#if theme_settings.social_icon_placement_top}}
             <li class="navPages-item">
                 {{> components/common/social-links}}
             </li>
         {{/if}}
+</nav>
+        {{/unless}}
+        
     </ul>
+
 </nav>

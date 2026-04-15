@@ -57,5 +57,50 @@ blog:
             {{{region name="epic_sidebar--global"}}}
         </div>
     </div>
+    
+    
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://isabelleslighting.com/#organization",
+      "name": "Isabelle's Lighting",
+      "url": "https://isabelleslighting.com",
+      "logo": "https://cdn11.bigcommerce.com/s-r6m0gsfal/images/stencil/242x100/isabelleslighting-logo-242x110_1647721952__65417.original.png",
+      "image": "https://cdn11.bigcommerce.com/s-r6m0gsfal/images/stencil/242x100/isabelleslighting-logo-242x110_1647721952__65417.original.png",
+      "telephone": "+18024768787",
+      "foundingDate": "1970",
+    "address": {
+  "@type": "PostalAddress",
+  "streetAddress": "74 South Main Street",
+  "addressLocality": "Barre",
+  "addressRegion": "VT",
+  "postalCode": "05641",
+  "addressCountry": "US"
+},
+      "sameAs": [
+        "https://www.facebook.com/isabelleslighting",
+        "https://www.instagram.com/isabelleslightingcom/",
+        "https://www.linkedin.com/company/isabelleslighting",
+        "https://www.youtube.com/isabelleslighting"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://isabelleslighting.com/#website",
+      "url": "https://isabelleslighting.com",
+      "name": "Isabelle's Lighting",
+      "publisher": { "@id": "https://isabelleslighting.com/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://isabelleslighting.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  ]
+}
+</script>
 {{/partial}}
 {{> layout/base}}
